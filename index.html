@@ -3,741 +3,284 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مشفى الجامعة بحلب AUH - لوحة الأجنحة</title>
+    <title>مشفى الجامعة بحلب - AUH</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0a3d62 0%, #1e90ff 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 20px;
-        }
-        .header h1 { font-size: 2.2em; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
-        .header p { opacity: 0.9; margin-top: 5px; }
-        
-        .top-actions {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: bold;
-            transition: all 0.3s;
-            margin: 5px;
-            font-family: inherit;
-        }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-        .btn-primary { background: #2ecc71; color: white; }
-        .btn-danger { background: #e74c3c; color: white; }
-        .btn-warning { background: #f39c12; color: white; }
-        .btn-info { background: #3498db; color: white; }
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 0.8em;
-            border-radius: 15px;
-        }
-
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 25px;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        .ward-card {
-            background: rgba(255,255,255,0.95);
-            border-radius: 20px;
-            padding: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            position: relative;
-            overflow: hidden;
-        }
-        .ward-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
-        }
-        .ward-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0;
-            width: 5px;
-            height: 100%;
-            background: #1e90ff;
-        }
-        .ward-card h2 { color: #0a3d62; margin-bottom: 10px; font-size: 1.3em; }
-        .ward-stats { display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.9em; color: #555; }
-        .stat-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-left: 5px; vertical-align: middle; }
-        .stat-dot.available { background: #2ecc71; box-shadow: 0 0 10px #2ecc71; }
-        .stat-dot.occupied { background: #e74c3c; }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(5px);
-        }
-        .modal.active { display: flex; }
-        .modal-content {
-            background: white;
-            border-radius: 20px;
-            width: 95%;
-            max-width: 1100px;
-            max-height: 90vh;
-            overflow-y: auto;
-            padding: 25px;
-            position: relative;
-        }
-        .close-btn {
-            position: absolute;
-            top: 10px; left: 15px;
-            background: none;
-            border: none;
-            font-size: 2.2em;
-            cursor: pointer;
-          color: #e74c3c;
-            z-index: 10;
-            line-height: 1;
-        }
-        .room-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-        .room {
-            border: 2px solid #ddd;
-            border-radius: 15px;
-            padding: 15px;
-            position: relative;
-        }
-        .room.available-room {
-            border-color: #2ecc71;
-            background: #f0fff4;
-            box-shadow: 0 0 15px rgba(46, 204, 113, 0.3);
-        }
-        .room-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #eee;
-        }
-        .room-header h4 { color: #0a3d62; margin: 0; }
-        
-        .patient {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 10px;
-            margin: 8px 0;
-            border-right: 4px solid #1e90ff;
-            font-size: 0.9em;
-            position: relative;
-        }
-        .patient strong { color: #0a3d62; }
-        .patient-actions {
-            margin-top: 8px;
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
-        .tag {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 0.75em;
-            font-weight: bold;
-            margin: 2px;
-        }
-        .tag.status-مقيم { background: #ffeaa7; color: #d68910; }
-        .tag.status-قيد-تخريج { background: #74b9ff; color: #054a91; }
-        .tag.status-مخرج { background: #dfe6e9; color: #636e72; }
-        .available-badge {
-            background: #2ecc71;
-            color: white;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.8em;
-            animation: pulse 1.5s infinite;
-            display: inline-block;
-        }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.5); }
-            70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
-        }
-
-        /* Form Styles */
-        .form-modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(5px);
-        }
-        .form-modal.active { display: flex; }
-        .form-container {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            width: 90%;
-            max-width: 500px;
-            text-align: right;
-        }
-        .form-container h3 { color: #0a3d62; margin-bottom: 20px; text-align: center; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 10px;
-            font-size: 1em;
-            font-family: inherit;
-            transition: border 0.3s;
-        }
-        .form-group input:focus, .form-group select:focus {
-            outline: none;
-            border-color: #1e90ff;
-        }
-        .form-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 20px;
-        }
-
-        .empty-room {
-            text-align: center;
-            color: #aaa;
-            padding: 15px;
-            font-style: italic;
-        }
-
-        .footer {
-            text-align: center;
-            color: white;
-            margin-top: 30px;
-            opacity: 0.8;
-        }
-        .footer a { color: #ffeaa7; }
-      @media (max-width: 600px) {
-            .header h1 { font-size: 1.6em; }
-            .btn { padding: 10px 18px; font-size: 0.9em; }
-        }
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:Tahoma;background:linear-gradient(135deg,#0a3d62,#1e90ff);min-height:100vh;padding:20px}
+        .header{text-align:center;color:white;margin-bottom:20px}
+        .header h1{font-size:2.2em;text-shadow:2px 2px 4px rgba(0,0,0,0.3)}
+        .dashboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:25px;max-width:1400px;margin:0 auto}
+        .ward-card{background:white;border-radius:20px;padding:20px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,0.2);transition:all 0.3s}
+        .ward-card:hover{transform:translateY(-5px)}
+        .ward-card h2{color:#0a3d62;margin-bottom:10px}
+        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;justify-content:center;align-items:center;backdrop-filter:blur(5px)}
+        .modal.active{display:flex}
+        .modal-content{background:white;border-radius:20px;width:95%;max-width:1100px;max-height:90vh;overflow-y:auto;padding:25px}
+        .close-btn{position:absolute;top:10px;left:15px;background:none;border:none;font-size:2.2em;cursor:pointer;color:#e74c3c}
+        .room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:15px;margin-top:15px}
+        .room{border:2px solid #ddd;border-radius:15px;padding:15px}
+        .room.available{border-color:#2ecc71;background:#f0fff4;box-shadow:0 0 15px rgba(46,204,113,0.3)}
+        .patient{background:#f8f9fa;border-radius:10px;padding:10px;margin:8px 0;border-right:4px solid #1e90ff;font-size:0.9em}
+        .tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75em;font-weight:bold;margin:2px}
+        .tag.مقيم{background:#ffeaa7;color:#d68910}
+        .tag.قيد-تخريج{background:#74b9ff;color:#054a91}
+        .tag.مخرج{background:#dfe6e9;color:#636e72}
+        .available-badge{background:#2ecc71;color:white;padding:5px 12px;border-radius:20px;font-size:0.8em;animation:pulse 1.5s infinite;display:inline-block}
+        @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,204,113,0.5)}70%{box-shadow:0 0 0 10px rgba(46,204,113,0)}100%{box-shadow:0 0 0 0 rgba(46,204,113,0)}}
+        .btn{padding:8px 16px;border:none;border-radius:20px;cursor:pointer;font-weight:bold;margin:2px;font-family:inherit}
+        .btn-primary{background:#2ecc71;color:white}
+        .btn-warning{background:#f39c12;color:white}
+        .btn-danger{background:#e74c3c;color:white}
+        .btn-info{background:#3498db;color:white}
+        .btn-sm{padding:5px 10px;font-size:0.75em}
+        .form-group{margin-bottom:12px}
+        .form-group label{display:block;margin-bottom:4px;font-weight:bold}
+        .form-group input,.form-group select{width:100%;padding:8px;border:2px solid #ddd;border-radius:10px;font-family:inherit}
+        .status-dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-left:5px;vertical-align:middle}
+        .status-dot.green{background:#2ecc71;box-shadow:0 0 10px #2ecc71}
+        .status-dot.red{background:#e74c3c}
+        .loading{text-align:center;color:white;font-size:1.5em;padding:50px}
     </style>
 </head>
 <body>
-
 <div class="header">
     <h1>🏥 مشفى جامعة حلب AUH</h1>
-    <p>لوحة متابعة الأجنحة والمرضى - قابلة للتعديل المباشر</p>
+    <p>لوحة متابعة الأجنحة والمرضى - بيانات مشتركة مباشرة</p>
 </div>
 
-<div class="top-actions">
-    <button class="btn btn-danger" onclick="resetData()">🔄 إعادة ضبط البيانات الافتراضية</button>
-    <button class="btn btn-info" onclick="exportData()">📥 تصدير البيانات</button>
-    <button class="btn btn-warning" onclick="importDataPrompt()">📤 استيراد بيانات</button>
-</div>
-
-<div class="dashboard" id="dashboard"></div>
-
-<!-- نافذة عرض الجناح -->
+<div class="loading" id="loading">⏳ جاري تحميل البيانات...</div>
+<div class="dashboard" id="dashboard" style="display:none"></div>
 <div class="modal" id="wardModal">
     <div class="modal-content">
         <button class="close-btn" onclick="closeModal()">&times;</button>
-        <div style="display:flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-            <h2 id="modalTitle" style="color:#0a3d62;"></h2>
-            <button class="btn btn-primary btn-sm" onclick="openAddPatientForm()">➕ إضافة مريض جديد</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:15px">
+            <h2 id="modalTitle" style="color:#0a3d62"></h2>
+            <button class="btn btn-primary" onclick="showAddPatientForm()">➕ إضافة مريض جديد</button>
         </div>
         <div class="room-grid" id="roomGrid"></div>
     </div>
 </div>
 
-<!-- نافذة إضافة/تعديل مريض -->
-<div class="form-modal" id="patientFormModal">
-    <div class="form-container">
-        <h3 id="formTitle">إضافة مريض جديد</h3>
-        <div class="form-group">
-            <label>👤 اسم المريض</label>
-            <input type="text" id="patientName" placeholder="أدخل اسم المريض الكامل">
-        </div>
-        <div class="form-group">
-            <label>📋 التشخيص</label>
-            <input type="text" id="patientDiagnosis" placeholder="أدخل تشخيص المرض">
-        </div>
-        <div class="form-group">
-            <label>👨‍⚕️ الأخصائي</label>
-            <input type="text" id="patientSpecialist" placeholder="د. اسم الأخصائي">
-        </div>
-        <div class="form-group">
-            <label>🏷️ الشعبة</label>
-            <select id="patientUnit">
-                <option value="صدرية">صدرية</option>
-                <option value="كلية">كلية</option>
-                <option value="هضمية">هضمية</option>
-                <option value="عصبية">عصبية</option>
-                <option value="داخلية">داخلية</option>
-                <option value="قلبية">قلبية</option>
-                <option value="جراحة وعائية">جراحة وعائية</option>
-                <option value="جراحة عصبية">جراحة عصبية</option>
-                <option value="جراحة عظمية">جراحة عظمية</option>
-                <option value="جراحة بولية">جراحة بولية</option>
-                <option value="أورام">أورام</option>
-                <option value="عينية">عينية</option>
-                <option value="خارجية">خارجية</option>
-                <option value="خاص">خاص</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>📊 حالة المريض</label>
-            <select id="patientStatus">
-                <option value="مقيم">مقيم</option>
-                <option value="قيد التخريج">قيد التخريج</option>
-                <option value="مخرج">مخرج</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>🚪 رقم الغرفة</label>
-            <select id="patientRoom"></select>
-        </div>
-        <div class="form-actions">
+<div class="modal" id="formModal">
+    <div class="modal-content" style="max-width:500px;text-align:right">
+        <h3 id="formTitle" style="color:#0a3d62;text-align:center;margin-bottom:20px">➕ إضافة مريض جديد</h3>
+        <div class="form-group"><label>👤 اسم المريض</label><input type="text" id="pName" placeholder="الاسم الكامل"></div>
+        <div class="form-group"><label>📋 التشخيص</label><input type="text" id="pDiagnosis" placeholder="تشخيص المرض"></div>
+        <div class="form-group"><label>👨‍⚕️ الأخصائي</label><input type="text" id="pSpecialist" placeholder="د. الاسم"></div>
+        <div class="form-group"><label>🏷️ الشعبة</label><select id="pUnit"><option>صدرية</option><option>كلية</option><option>هضمية</option><option>عصبية</option><option>داخلية</option><option>قلبية</option><option>جراحة وعائية</option><option>جراحة عصبية</option><option>جراحة عظمية</option><option>جراحة بولية</option><option>أورام</option><option>عينية</option><option>خارجية</option><option>خاص</option></select></div>
+        <div class="form-group"><label>📊 الحالة</label><select id="pStatus"><option>مقيم</option><option>قيد التخريج</option><option>مخرج</option></select></div>
+        <div class="form-group"><label>🚪 الغرفة</label><select id="pRoom"></select></div>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:20px">
             <button class="btn btn-primary" onclick="savePatient()">💾 حفظ</button>
-            <button class="btn btn-danger" onclick="closePatientForm()">❌ إلغاء</button>
+            <button class="btn btn-danger" onclick="closeFormModal()">❌ إلغاء</button>
         </div>
-        <input type="hidden" id="editWardId">
-        <input type="hidden" id="editPatientIndex" value="-1">
+        <input type="hidden" id="editWardId"><input type="hidden" id="editRoomIdx"><input type="hidden" id="editPatIdx" value="-1">
     </div>
 </div>
 
-<div class="footer">
-    <p>تصميم خاص لأبطال مشفى الجامعة بحلب 💙 | البيانات تحفظ تلقائياً في متصفحك</p>
-</div>
-
 <script>
-// ========================
-// البيانات الافتراضية
-// ========================
-  const defaultWardsData = [
-    {
-        id: 1,
-        name: "جناح الصدرية والكلية",
-        rooms: [
-            { number: "101", capacity: 4, patients: [
-                { name: "أحمد العلي", diagnosis: "ربو قصبي", specialist: "د. محمد نور", unit: "صدرية", status: "مقيم" },
-                { name: "فاطمة الحسين", diagnosis: "فشل كلوي", specialist: "د. رنا قدور", unit: "كلية", status: "مقيم" }
-            ]},
-            { number: "102", capacity: 4, patients: [
-                { name: "محمود الخطيب", diagnosis: "ذات رئة", specialist: "د. محمد نور", unit: "صدرية", status: "قيد التخريج" }
-            ]},
-            { number: "103", capacity: 4, patients: [] },
-            { number: "104", capacity: 4, patients: [
-                { name: "سارة العمر", diagnosis: "تهاب كبيبات", specialist: "د. رنا قدور", unit: "كلية", status: "مقيم" },
-                { name: "علي حسن", diagnosis: "انسداد رئوي", specialist: "د. محمد نور", unit: "صدرية", status: "مقيم" },
-                { name: "نور الهدى", diagnosis: "تهاب قصبات", specialist: "د. أحمد شيخ", unit: "صدرية", status: "مخرج" }
-            ]},
-            { number: "105", capacity: 4, patients: [
-                { name: "خالد الجاسم", diagnosis: "غسيل كلى", specialist: "د. رنا قدور", unit: "كلية", status: "مقيم" }
-            ]},
-            { number: "106", capacity: 4, patients: [] },
-            { number: "107", capacity: 4, patients: [
-                { name: "ريم علي", diagnosis: "ربو حاد", specialist: "د. أحمد شيخ", unit: "صدرية", status: "قيد التخريج" }
-            ]},
-            { number: "108", capacity: 4, patients: [] }
-        ]
-    },
-    {
-        id: 2,
-        name: "جناح الهضمية والعصبية",
-        rooms: [
-            { number: "201", capacity: 4, patients: [
-                { name: "عمر القاضي", diagnosis: "تشمع كبد", specialist: "د. سامر زين", unit: "هضمية", status: "مقيم" }
-            ]},
-            { number: "202", capacity: 4, patients: [] },
-            { number: "203", capacity: 4, patients: [
-                { name: "لينا خليل", diagnosis: "صرع", specialist: "د. هاني يونس", unit: "عصبية", status: "مقيم" },
-                { name: "وسام درويش", diagnosis: "قرحة هضمية", specialist: "د. سامر زين", unit: "هضمية", status: "مقيم" }
-            ]}
-        ]
-    },
-    {
-        id: 3,
-        name: "جناح العناية الداخلية",
-        rooms: [
-            { number: "301", capacity: 4, patients: [
-                { name: "حسن اليوسف", diagnosis: "سكري غير معاوض", specialist: "د. ليلى عثمان", unit: "داخلية", status: "مقيم" }
-            ]},
-            { number: "302", capacity: 4, patients: [] }
-        ]
-    },
-    {
-        id: 4,
-        name: "الخاص الثالث",
-        rooms: [
-            { number: "401", capacity: 2, patients: [
-                { name: "كريم سعد", diagnosis: "متابعة قلبية", specialist: "د. نضال الحافظ", unit: "قلبية", status: "مقيم" }
-            ]},
-            { number: "402", capacity: 2, patients: [] }
-        ]
-    },
-    {
-        id: 5,
-        name: "الخاص الرابع",
-        rooms: [
-            { number: "501", capacity: 2, patients: [] },
-            { number: "502", capacity: 2, patients: [
-                { name: "سوسن عبدالله", diagnosis: "جراحة عامة", specialist: "د. فادي حمدان", unit: "جراحة", status: "قيد التخريج" }
-            ]}
-        ]
-    },
-    {
-        id: 6,
-        name: "الخارجيات",
-        rooms: [
-            { number: "خ-1", capacity: 6, patients: [
-                { name: "رامي الأسود", diagnosis: "تطبيب خارجي", specialist: "د. نورا عبدالقادر", unit: "خارجية", status: "مقيم" },
-                { name: "هبة عكاش", diagnosis: "تطبيب خارجي", specialist: "د. نورا عبدالقادر", unit: "خارجية", status: "مقيم" }
-            ]}
-        ]
-    },
-    {
-        id: 7,
-        name: "العناية القلبية والجراحات",
-        rooms: [
-            { number: "601 جراحة وعائية", capacity: 3, patients: [
-              { name: "عدنان الريس", diagnosis: "بعد قثطرة", specialist: "د. نضال الحافظ", unit: "قلبية", status: "مقيم" }
-            ]},
-            { number: "602 جراحة عصبية", capacity: 3, patients: [] },
-            { number: "603 جراحة عظمية", capacity: 3, patients: [
-                { name: "جهاد المصري", diagnosis: "كسر فخذ", specialist: "د. عامر حلبي", unit: "جراحة عظمية", status: "مقيم" }
-            ]},
-            { number: "604 جراحة بولية", capacity: 3, patients: [] },
-            { number: "605 أورام", capacity: 3, patients: [] },
-            { number: "606 عينية", capacity: 3, patients: [] }
-        ]
-    }
-];
+// إعدادات Firebase - بدلها بإعدادات مشروعك
+const firebaseConfig = {
+    apiKey: "AIzaSyBmTzgG_PMqGXGXXXxxxXXXxxxXXX",
+    authDomain: "your-project.firebaseapp.com",
+    databaseURL: "https://your-project-default-rtdb.firebaseio.com",
+    projectId: "your-project",
+    storageBucket: "your-project.appspot.com",
+    messagingSenderId: "000000000000",
+    appId: "1:000000000000:web:xxxxxxxxxxxxxxxxxxxx"
+};
 
-// ========================
-// تحميل/حفظ البيانات
-// ========================
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
 let wardsData = [];
-
-function loadData() {
-    const saved = localStorage.getItem('auh_wards_data');
-    if (saved) {
-        wardsData = JSON.parse(saved);
-    } else {
-        wardsData = JSON.parse(JSON.stringify(defaultWardsData));
-        saveData();
-    }
-}
-
-function saveData() {
-    localStorage.setItem('auh_wards_data', JSON.stringify(wardsData));
-}
-
-function resetData() {
-    if (confirm('⚠️ هل أنت متأكد من إعادة ضبط كل البيانات إلى الوضع الافتراضي؟ ستفقد كل التعديلات.')) {
-        wardsData = JSON.parse(JSON.stringify(defaultWardsData));
-        saveData();
-        renderDashboard();
-        alert('✅ تمت إعادة الضبط بنجاح');
-    }
-}
-
-function exportData() {
-    const dataStr = JSON.stringify(wardsData, null, 2);
-    const blob = new Blob([dataStr], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'auh_backup_' + new Date().toISOString().split('T')[0] + '.json';
-    a.click();
-    URL.revokeObjectURL(url);
-    alert('✅ تم تصدير البيانات بنجاح');
-}
-
-function importDataPrompt() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = function(e) {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            try {
-                const data = JSON.parse(event.target.result);
-                if (confirm('⚠️ استيراد البيانات سيستبدل كل البيانات الحالية. هل أنت متأكد؟')) {
-                    wardsData = data;
-                    saveData();
-                    renderDashboard();
-                    alert('✅ تم استيراد البيانات بنجاح');
-                }
-            } catch (err) {
-                alert('❌ فشل استيراد الملف. تأكد أنه ملف JSON صالح.');
-            }
-        };
-        reader.readAsText(file);
-    };
-    input.click();
-}
-
-// ========================
-// دوال العرض
-// ========================
 let currentWardId = null;
 
+// تحميل البيانات من Firebase
+function loadData() {
+    database.ref('wards').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            wardsData = data;
+            renderDashboard();
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'grid';
+        } else {
+            // أول مرة - إنشاء بيانات افتراضية
+            createDefaultData();
+        }
+    });
+}
+
+function createDefaultData() {
+    wardsData = [
+        {id:1,name:"جناح الصدرية والكلية",rooms:[
+            {number:"101",capacity:4,patients:[{name:"أحمد العلي",diagnosis:"ربو قصبي",specialist:"د. محمد نور",unit:"صدرية",status:"مقيم"},{name:"فاطمة الحسين",diagnosis:"فشل كلوي",specialist:"د. رنا قدور",unit:"كلية",status:"مقيم"}]},
+            {number:"102",capacity:4,patients:[{name:"محمود الخطيب",diagnosis:"ذات رئة",specialist:"د. محمد نور",unit:"صدرية",status:"قيد التخريج"}]},
+            {number:"103",capacity:4,patients:[]},{number:"104",capacity:4,patients:[{name:"سارة العمر",diagnosis:"تهاب كبيبات",specialist:"د. رنا قدور",unit:"كلية",status:"مقيم"},{name:"علي حسن",diagnosis:"انسداد رئوي",specialist:"د. محمد نور",unit:"صدرية",status:"مقيم"},{name:"نور الهدى",diagnosis:"تهاب قصبات",specialist:"د. أحمد شيخ",unit:"صدرية",status:"مخرج"}]},
+            {number:"105",capacity:4,patients:[{name:"خالد الجاسم",diagnosis:"غسيل كلى",specialist:"د. رنا قدور",unit:"كلية",status:"مقيم"}]},{number:"106",capacity:4,patients:[]},{number:"107",capacity:4,patients:[{name:"ريم علي",diagnosis:"ربو حاد",specialist:"د. أحمد شيخ",unit:"صدرية",status:"قيد التخريج"}]},{number:"108",capacity:4,patients:[]}
+        ]},
+        {id:2,name:"جناح الهضمية والعصبية",rooms:[
+            {number:"201",capacity:4,patients:[{name:"عمر القاضي",diagnosis:"تشمع كبد",specialist:"د. سامر زين",unit:"هضمية",status:"مقيم"}]},{number:"202",capacity:4,patients:[]},{number:"203",capacity:4,patients:[{name:"لينا خليل",diagnosis:"صرع",specialist:"د. هاني يونس",unit:"عصبية",status:"مقيم"},{name:"وسام درويش",diagnosis:"قرحة هضمية",specialist:"د. سامر زين",unit:"هضمية",status:"مقيم"}]}
+        ]},
+        {id:3,name:"جناح العناية الداخلية",rooms:[{number:"301",capacity:4,patients:[{name:"حسن اليوسف",diagnosis:"سكري غير معاوض",specialist:"د. ليلى عثمان",unit:"داخلية",status:"مقيم"}]},{number:"302",capacity:4,patients:[]}]},
+        {id:4,name:"الخاص الثالث",rooms:[{number:"401",capacity:2,patients:[{name:"كريم سعد",diagnosis:"متابعة قلبية",specialist:"د. نضال الحافظ",unit:"قلبية",status:"مقيم"}]},{number:"402",capacity:2,patients:[]}]},
+        {id:5,name:"الخاص الرابع",rooms:[{number:"501",capacity:2,patients:[]},{number:"502",capacity:2,patients:[{name:"سوسن عبدالله",diagnosis:"جراحة عامة",specialist:"د. فادي حمدان",unit:"جراحة",status:"قيد التخريج"}]}]},
+        {id:6,name:"الخارجيات",rooms:[{number:"خ-1",capacity:6,patients:[{name:"رامي الأسود",diagnosis:"تطبيب خارجي",specialist:"د. نورا عبدالقادر",unit:"خارجية",status:"مقيم"},{name:"هبة عكاش",diagnosis:"تطبيب خارجي",specialist:"د. نورا عبدالقادر",unit:"خارجية",status:"مقيم"}]}]},
+        {id:7,name:"العناية القلبية والجراحات",rooms:[
+            {number:"601 وعائية",capacity:3,patients:[{name:"عدنان الريس",diagnosis:"بعد قثطرة",specialist:"د. نضال الحافظ",unit:"قلبية",status:"مقيم"}]},{number:"602 عصبية",capacity:3,patients:[]},{number:"603 عظمية",capacity:3,patients:[{name:"جهاد المصري",diagnosis:"كسر فخذ",specialist:"د. عامر حلبي",unit:"جراحة عظمية",status:"مقيم"}]},{number:"604 بولية",capacity:3,patients:[]},{number:"605 أورام",capacity:3,patients:[]},{number:"606 عينية",capacity:3,patients:[]}
+        ]}
+    ];
+    saveAllData();
+}
+
+function saveAllData() {
+    database.ref('wards').set(wardsData);
+}
+
 function renderDashboard() {
-    const dashboard = document.getElementById('dashboard');
-    dashboard.innerHTML = wardsData.map(ward => {
-        const totalBeds = ward.rooms.reduce((sum, r) => sum + r.capacity, 0);
-        const occupiedBeds = ward.rooms.reduce((sum, r) => sum + r.patients.length, 0);
-        const availableBeds = totalBeds - occupiedBeds;
-        return 
-            <div class="ward-card" onclick="openWard(${ward.id})">
-                <h2>🏥 ${ward.name}</h2>
-                <div class="ward-stats">
-                    <span>🛏️ غرف: ${ward.rooms.length}</span>
-                    <span>👤 مرضى: ${occupiedBeds}/${totalBeds}</span>
-                    <span><span class="stat-dot available"></span> متاح: ${availableBeds}</span>
-                </div>
-                ${availableBeds > 0 ? <div style="margin-top:10px;"><span class="available-badge">✨ ${availableBeds} أماكن متاحة ✨</span></div> : '<div style="margin-top:10px;color:#e74c3c;">⚠️ ممتلئ</div>'}
-            </div>
-        ;
+    document.getElementById('dashboard').innerHTML = wardsData.map(w => {
+        let total = w.rooms.reduce((s,r) => s + r.capacity, 0);
+        let occupied = w.rooms.reduce((s,r) => s + r.patients.length, 0);
+        let avail = total - occupied;
+        return <div class="ward-card" onclick="openWard(${w.id})">
+            <h2>🏥 ${w.name}</h2>
+            <p>🛏️ غرف: ${w.rooms.length} | 👤 مرضى: ${occupied}/${total} | <span class="status-dot ${avail > 0 ? 'green' : 'red'}"></span> متاح: ${avail}</p>
+            ${avail > 0 ? <span class="available-badge">✨ ${avail} أماكن متاحة ✨</span> : '<span style="color:#e74c3c">⚠️ ممتلئ</span>'}
+        </div>;
     }).join('');
 }
 
-function openWard(wardId) {
-    currentWardId = wardId;
-    const ward = wardsData.find(w => w.id === wardId);
-    if (!ward) return;
-    
-    document.getElementById('modalTitle').textContent = ward.name;
+function openWard(id) {
+    currentWardId = id;
+    let w = wardsData.find(w => w.id === id);
+    if(!w) return;
+    document.getElementById('modalTitle').textContent = w.name;
+    document.getElementById('roomGrid').innerHTML = w.rooms.map((r,ri) => {
+        let avail = r.capacity - r.patients.length;
+        return <div class="room ${avail > 0 ? 'available' : ''}">
+            <h4>🚪 غرفة ${r.number} ${avail > 0 ? <span class="available-badge">${avail} متاح</span> : ''}</h4>
+            ${r.patients.length === 0 ? '<p style="color:#888;text-align:center;">🛏️ غرفة فارغة</p>' : ''}
+            ${r.patients.map((p,pi) => 
+                <div class="patient">
+                             <strong>👤 ${p.name}</strong><br>
+                    📋 ${p.diagnosis}<br>
+                    👨‍⚕️ ${p.specialist}<br>
+                    🏷️ ${p.unit}<br>
+                    <span class="tag ${p.status.replace(/\s/g,'-')}">${p.status}</span>
+                    <br>
+                    <button class="btn btn-warning btn-sm" onclick="event.stopPropagation();editPatient(${id},${ri},${pi})">✏️ تعديل</button>
+                    <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePatient(${id},${ri},${pi})">🗑️ حذف</button>
+                </div>
+            ).join('')}
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();showAddFormForRoom(${id},${ri})" style="margin-top:8px;width:100%">➕ حجز سرير</button>
+        </div>;
+    }).join('');
     document.getElementById('wardModal').classList.add('active');
-    renderRooms(ward);
-}
-  function renderRooms(ward) {
-    const roomGrid = document.getElementById('roomGrid');
-    roomGrid.innerHTML = ward.rooms.map((room, roomIndex) => {
-        const availableSlots = room.capacity - room.patients.length;
-        const isAvailable = availableSlots > 0;
-        
-        return 
-            <div class="room ${isAvailable ? 'available-room' : ''}">
-                <div class="room-header">
-                    <h4>🚪 ${room.number}</h4>
-                    <div>
-                        ${isAvailable ? <span class="available-badge">${availableSlots} متاح</span> : '<span style="color:#e74c3c;font-size:0.8em;">ممتلئة</span>'}
-                        <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); openAddPatientToRoom(${currentWardId}, ${roomIndex})" style="margin-right:5px;">➕</button>
-                    </div>
-                </div>
-                ${room.patients.length === 0 ? '<div class="empty-room">🛏️ غرفة فارغة - متاحة للحجز</div>' : ''}
-                ${room.patients.map((p, pIndex) => 
-                    <div class="patient">
-                        <strong>👤 ${p.name}</strong><br>
-                        📋 <b>التشخيص:</b> ${p.diagnosis}<br>
-                        👨‍⚕️ <b>الأخصائي:</b> ${p.specialist}<br>
-                        🏷️ <b>الشعبة:</b> ${p.unit}<br>
-                        <span class="tag status-${p.status.replace(/\s/g, '-')}">📊 ${p.status}</span>
-                        <div class="patient-actions">
-                            <button class="btn btn-warning btn-sm" onclick="event.stopPropagation(); editPatient(${currentWardId}, ${roomIndex}, ${pIndex})">✏️ تعديل</button>
-                            <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deletePatient(${currentWardId}, ${roomIndex}, ${pIndex})">🗑️ حذف</button>
-                        </div>
-                    </div>
-                ).join('')}
-            </div>
-        ;
-    }).join('');
 }
 
-// ========================
-// دوال إضافة وتعديل وحذف المرضى
-// ========================
-function openAddPatientForm() {
-    const ward = wardsData.find(w => w.id === currentWardId);
-    if (!ward) return;
-    
+function showAddPatientForm() {
     document.getElementById('formTitle').textContent = '➕ إضافة مريض جديد';
-    document.getElementById('editPatientIndex').value = '-1';
+    document.getElementById('editPatIdx').value = '-1';
     document.getElementById('editWardId').value = currentWardId;
-    
-    // ملء قائمة الغرف
-    const roomSelect = document.getElementById('patientRoom');
-    roomSelect.innerHTML = ward.rooms.map((r, i) => {
-        const avail = r.capacity - r.patients.length;
+    document.getElementById('pName').value = '';
+    document.getElementById('pDiagnosis').value = '';
+    document.getElementById('pSpecialist').value = '';
+    let w = wardsData.find(w => w.id === currentWardId);
+    document.getElementById('pRoom').innerHTML = w.rooms.map((r,i) => {
+        let avail = r.capacity - r.patients.length;
         return <option value="${i}" ${avail <= 0 ? 'disabled' : ''}>غرفة ${r.number} (${avail > 0 ? avail + ' متاح' : 'ممتلئة'})</option>;
     }).join('');
-    
-    // تفريغ الحقول
-    document.getElementById('patientName').value = '';
-    document.getElementById('patientDiagnosis').value = '';
-    document.getElementById('patientSpecialist').value = '';
-    document.getElementById('patientUnit').value = 'صدرية';
-    document.getElementById('patientStatus').value = 'مقيم';
-    
-    document.getElementById('patientFormModal').classList.add('active');
+    document.getElementById('formModal').classList.add('active');
 }
 
-function openAddPatientToRoom(wardId, roomIndex) {
-    currentWardId = wardId;
-    const ward = wardsData.find(w => w.id === wardId);
-    if (!ward) return;
-    
-    document.getElementById('formTitle').textContent = '➕ إضافة مريض إلى غرفة ' + ward.rooms[roomIndex].number;
-    document.getElementById('editPatientIndex').value = '-1';
-    document.getElementById('editWardId').value = wardId;
-    
-    const roomSelect = document.getElementById('patientRoom');
-    roomSelect.innerHTML = ward.rooms.map((r, i) => {
-        const avail = r.capacity - r.patients.length;
-        return <option value="${i}" ${i === roomIndex ? 'selected' : ''} ${avail <= 0 && i !== roomIndex ? 'disabled' : ''}>غرفة ${r.number} (${avail > 0 ? avail + ' متاح' : 'ممتلئة'})</option>;
-  }).join('');
-    
-    document.getElementById('patientName').value = '';
-    document.getElementById('patientDiagnosis').value = '';
-    document.getElementById('patientSpecialist').value = '';
-    document.getElementById('patientUnit').value = 'صدرية';
-    document.getElementById('patientStatus').value = 'مقيم';
-    
-    document.getElementById('patientFormModal').classList.add('active');
-}
-
-function editPatient(wardId, roomIndex, patientIndex) {
-    const ward = wardsData.find(w => w.id === wardId);
-    if (!ward) return;
-    const patient = ward.rooms[roomIndex].patients[patientIndex];
-    
-    document.getElementById('formTitle').textContent = '✏️ تعديل بيانات المريض';
-    document.getElementById('editPatientIndex').value = patientIndex;
-    document.getElementById('editWardId').value = wardId;
-    
-    const roomSelect = document.getElementById('patientRoom');
-    roomSelect.innerHTML = ward.rooms.map((r, i) => {
-        const avail = r.capacity - r.patients.length;
-        const isCurrent = (i === roomIndex);
-        return <option value="${i}" ${isCurrent ? 'selected' : ''} ${avail <= 0 && !isCurrent ? 'disabled' : ''}>غرفة ${r.number} (${avail > 0 ? avail + ' متاح' : 'ممتلئة'})</option>;
+function showAddFormForRoom(wid, rid) {
+    currentWardId = wid;
+    document.getElementById('formTitle').textContent = '➕ حجز في غرفة ' + wardsData.find(w=>w.id===wid).rooms[rid].number;
+    document.getElementById('editPatIdx').value = '-1';
+    document.getElementById('editWardId').value = wid;
+    document.getElementById('editRoomIdx').value = rid;
+    document.getElementById('pName').value = '';
+    document.getElementById('pDiagnosis').value = '';
+    document.getElementById('pSpecialist').value = '';
+    let w = wardsData.find(w => w.id === wid);
+    document.getElementById('pRoom').innerHTML = w.rooms.map((r,i) => {
+        let avail = r.capacity - r.patients.length;
+        return <option value="${i}" ${i === rid ? 'selected' : ''} ${avail <= 0 && i !== rid ? 'disabled' : ''}>غرفة ${r.number} (${avail > 0 ? avail + ' متاح' : 'ممتلئة'})</option>;
     }).join('');
-    
-    document.getElementById('patientName').value = patient.name;
-    document.getElementById('patientDiagnosis').value = patient.diagnosis;
-    document.getElementById('patientSpecialist').value = patient.specialist;
-    document.getElementById('patientUnit').value = patient.unit;
-    document.getElementById('patientStatus').value = patient.status;
-    
-    document.getElementById('patientFormModal').classList.add('active');
+    document.getElementById('formModal').classList.add('active');
+}
+
+function editPatient(wid, rid, pid) {
+    currentWardId = wid;
+    let p = wardsData.find(w=>w.id===wid).rooms[rid].patients[pid];
+    document.getElementById('formTitle').textContent = '✏️ تعديل بيانات المريض';
+    document.getElementById('editPatIdx').value = pid;
+    document.getElementById('editWardId').value = wid;
+    document.getElementById('editRoomIdx').value = rid;
+    document.getElementById('pName').value = p.name;
+    document.getElementById('pDiagnosis').value = p.diagnosis;
+    document.getElementById('pSpecialist').value = p.specialist;
+    document.getElementById('pUnit').value = p.unit;
+    document.getElementById('pStatus').value = p.status;
+    let w = wardsData.find(w => w.id === wid);
+    document.getElementById('pRoom').innerHTML = w.rooms.map((r,i) => {
+        let avail = r.capacity - r.patients.length;
+        return <option value="${i}" ${i === rid ? 'selected' : ''} ${avail <= 0 && i !== rid ? 'disabled' : ''}>غرفة ${r.number} (${avail > 0 ? avail + ' متاح' : 'ممتلئة'})</option>;
+    }).join('');
+    document.getElementById('formModal').classList.add('active');
 }
 
 function savePatient() {
-    const wardId = parseInt(document.getElementById('editWardId').value);
-    const patientIndex = parseInt(document.getElementById('editPatientIndex').value);
-    const roomIndex = parseInt(document.getElementById('patientRoom').value);
+    let wid = parseInt(document.getElementById('editWardId').value);
+    let rid = parseInt(document.getElementById('pRoom').value);
+    let pid = parseInt(document.getElementById('editPatIdx').value);
+    let w = wardsData.find(w => w.id === wid);
+    let name = document.getElementById('pName').value.trim();
+    let diagnosis = document.getElementById('pDiagnosis').value.trim();
+    let specialist = document.getElementById('pSpecialist').value.trim();
     
-    const ward = wardsData.find(w => w.id === wardId);
-    if (!ward) return;
+    if(!name  !diagnosis  !specialist) { alert('⚠️ الرجاء ملء جميع الحقول'); return; }
     
-    const room = ward.rooms[roomIndex];
-    
-    // التحقق من السعة
-    if (patientIndex === -1 && room.patients.length >= room.capacity) {
-        alert('⚠️ هذه الغرفة ممتلئة! اختر غرفة أخرى.');
-        return;
-    }
-    
-    const patientData = {
-        name: document.getElementById('patientName').value.trim(),
-        diagnosis: document.getElementById('patientDiagnosis').value.trim(),
-        specialist: document.getElementById('patientSpecialist').value.trim(),
-        unit: document.getElementById('patientUnit').value,
-        status: document.getElementById('patientStatus').value
+    let patient = {
+        name, diagnosis, specialist,
+        unit: document.getElementById('pUnit').value,
+        status: document.getElementById('pStatus').value
     };
     
-    // تحقق من الحقول الفارغة
-    if (!patientData.name  !patientData.diagnosis  !patientData.specialist) {
-        alert('⚠️ الرجاء ملء جميع الحقول المطلوبة');
-        return;
-    }
-    
-    if (patientIndex === -1) {
-        // إضافة جديد
-        room.patients.push(patientData);
+    if(pid === -1) {
+        if(w.rooms[rid].patients.length >= w.rooms[rid].capacity) { alert('⚠️ الغرفة ممتلئة!'); return; }
+        w.rooms[rid].patients.push(patient);
     } else {
-        // تعديل موجود - إذا تغيرت الغرفة، ننقل المريض
-        const oldRoomIndex = ward.rooms.findIndex(r => r.patients.findIndex((p, i) => i === patientIndex && r === ward.rooms[roomIndex]) !== -1);
-        if (oldRoomIndex !== -1 && oldRoomIndex !== roomIndex) {
-            const oldRoom = ward.rooms[oldRoomIndex];
-            const movedPatient = oldRoom.patients.splice(patientIndex, 1)[0];
-            room.patients.push({...movedPatient, ...patientData});
+        let oldRid = parseInt(document.getElementById('editRoomIdx').value);
+        if(oldRid !== rid) {
+            w.rooms[oldRid].patients.splice(pid, 1);
+            w.rooms[rid].patients.push(patient);
         } else {
-            room.patients[patientIndex] = patientData;
+            w.rooms[rid].patients[pid] = patient;
         }
     }
     
-    saveData();
-    closePatientForm();
-    
-    // تحديث العرض
-    const updatedWard = wardsData.find(w => w.id === wardId);
-    renderRooms(updatedWard);
-    renderDashboard();
+    saveAllData();
+    closeFormModal();
+    openWard(wid);
 }
 
-function deletePatient(wardId, roomIndex, patientIndex) {
-    if (!confirm('⚠️ هل أنت متأكد من حذف هذا المريض؟')) return;
-    
-    const ward = wardsData.find(w => w.id === wardId);
-    if (!ward) return;
-    
-    ward.rooms[roomIndex].patients.splice(patientIndex, 1);
-    saveData();
-    renderRooms(ward);
-    renderDashboard();
-}
-  function closePatientForm() {
-    document.getElementById('patientFormModal').classList.remove('active');
+function deletePatient(wid, rid, pid) {
+    if(!confirm('⚠️ متأكد من حذف هذا المريض؟')) return;
+    wardsData.find(w=>w.id===wid).rooms[rid].patients.splice(pid, 1);
+    saveAllData();
+    openWard(wid);
 }
 
-function closeModal() {
-    document.getElementById('wardModal').classList.remove('active');
-    currentWardId = null;
-    renderDashboard();
-}
+function closeModal() { document.getElementById('wardModal').classList.remove('active'); }
+function closeFormModal() { document.getElementById('formModal').classList.remove('active'); }
+document.getElementById('wardModal').addEventListener('click', function(e) { if(e.target === this) closeModal(); });
+document.getElementById('formModal').addEventListener('click', function(e) { if(e.target === this) closeFormModal(); });
 
-// إغلاق النوافذ عند الضغط خارجها
-document.getElementById('wardModal').addEventListener('click', function(e) {
-    if (e.target === this) closeModal();
-});
-document.getElementById('patientFormModal').addEventListener('click', function(e) {
-    if (e.target === this) closePatientForm();
-});
-
-// ========================
-// بدء التطبيق
-// ========================
+// بدء التحميل
 loadData();
-renderDashboard();
 </script>
-
 </body>
 </html>
