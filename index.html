@@ -52,10 +52,6 @@
         .ward-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:15px}
         .sync-badge{background:#2ecc71;color:white;padding:6px 14px;border-radius:20px;font-size:0.8em;animation:pulse 2s infinite}
         .sync-badge.error{background:#e74c3c;animation:none}
-        .loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:3000;display:flex;justify-content:center;align-items:center}
-        .loading-box{background:white;padding:30px;border-radius:20px;text-align:center}
-        .spinner{border:4px solid #ddd;border-top:4px solid #1e90ff;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;margin:0 auto 15px}
-        @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
     </style>
 </head>
 <body>
@@ -66,6 +62,7 @@
 <div class="top-bar">
     <span class="sync-badge" id="syncStatus">🟢 متصل</span>
     <button class="btn btn-info" onclick="exportData()">📥 تصدير نسخة</button>
+    <button class="btn btn-warning" onclick="importData()">📤 استيراد نسخة</button>
     <button class="btn btn-danger" onclick="resetAllData()">🔄 إعادة ضبط</button>
 </div>
 
@@ -92,30 +89,21 @@
         <div class="form-group"><label>📊 الحالة</label><select id="pStatus"><option>مقيم</option><option>قيد التخريج</option><option>مخرج</option></select></div>
         <div class="form-group"><label>🚪 الغرفة</label><select id="pRoom"></select></div>
         <div class="form-actions">
-            <button class="btn btn-primary" onclick="savePatient()">💾 حفظ</button>
+            <button class="btn btn-primary" onclick="savePatient()">💾 حفظ ومشاركة</button>
             <button class="btn btn-danger" onclick="closePatientForm()">❌ إلغاء</button>
         </div>
         <input type="hidden" id="editWardId"><input type="hidden" id="editRoomIdx"><input type="hidden" id="editPatIdx" value="-1">
     </div>
 </div>
 
-<div class="loading-overlay" id="loadingOverlay" style="display:none">
-    <div class="loading-box">
-        <div class="spinner"></div>
-        <p>⏳ جاري حفظ البيانات...</p>
-    </div>
-</div>
-
 <script>
-// ==================== إعدادات Gist ====================
 const GIST_ID = 'dd670b3b988135252bfa5bfea1b8e59f';
 const GIST_FILENAME = 'auh-data.json';
 const RAW_URL = `https://gist.githubusercontent.com/drabdullah2900-ship-it/${GIST_ID}/raw/${GIST_FILENAME}`;
 const GIST_API = `https://api.github.com/gists/${GIST_ID}`;
+const GITHUB_TOKEN = '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';
 
-// ==================== البيانات ====================
 let wardsData = [];
-let isSaving = false;
 
 const defaultWards = [
     {id:1,name:"جناح الصدرية والكلية",rooms:[
@@ -158,17 +146,15 @@ const defaultWards = [
     ]}
 ];
 
-// ==================== تحميل من Gist ====================
 async function loadFromGist() {
     try {
         let response = await fetch(RAW_URL + '?t=' + Date.now());
-        if (!response.ok) throw new Error('فشل التحميل');
-        let data = await response.json();
-        wardsData = data;
+        if (!response.ok) throw new Error('فشل');
+        wardsData = await response.json();
+        saveToLocal();
         renderDashboard();
         setStatus(true);
     } catch (err) {
-        console.log('تحميل من الذاكرة المحلية...');
         loadFromLocal();
         setStatus(false);
     }
@@ -200,36 +186,34 @@ function setStatus(online) {
     }
 }
 
-// ==================== حفظ إلى Gist ====================
 async function saveToGist() {
-    if (isSaving) return;
-    isSaving = true;
-    document.getElementById('loadingOverlay').style.display = 'flex';
-    
     saveToLocal();
-    
     try {
-        // هذا يحتاج GitHub Token للكتابة
-        // حالياً نعتمد على التصدير والاستيراد للمشاركة
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setStatus(true);
+        let response = await fetch(GIST_API, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                files: {
+                    [GIST_FILENAME]: {
+                        content: JSON.stringify(wardsData, null, 2)
+                    }
+                }
+            })
+        });
+        if (response.ok) {
+            setStatus(true);
+            console.log('✅ تم الحفظ والمشاركة');
+        } else {
+            setStatus(false);
+        }
     } catch (err) {
-        console.log('الحفظ على Gist يحتاج Token. استخدم التصدير والاستيراد للمشاركة.');
+        setStatus(false);
     }
-    
-    document.getElementById('loadingOverlay').style.display = 'none';
-    isSaving = false;
 }
 
-// ==================== مشاركة سريعة ====================
-function shareViaWhatsApp() {
-    let data = JSON.stringify(wardsData);
-    let encoded = encodeURIComponent(data);
-    let url = `https://wa.me/?text=بيانات%20مشفى%20AUH:%0A${encoded}`;
-    window.open(url, '_blank');
-}
-
-// ==================== عرض ====================
 function renderDashboard() {
     document.getElementById('dashboard').innerHTML = wardsData.map(w => {
         let total = w.rooms.reduce((s,r) => s + r.capacity, 0);
@@ -273,18 +257,14 @@ function openWard(id) {
     document.getElementById('wardModal').classList.add('active');
 }
 
-function closeModal() {
-    document.getElementById('wardModal').classList.remove('active');
-    renderDashboard();
-}
+function closeModal() { document.getElementById('wardModal').classList.remove('active'); renderDashboard(); }
 
 function openPatientForm() {
     document.getElementById('formTitle').textContent = '➕ إضافة مريض جديد';
     document.getElementById('editPatIdx').value = '-1';
     document.getElementById('editWardId').value = currentWardId;
     document.getElementById('editRoomIdx').value = '';
-    clearForm();
-    fillRoomSelect();
+    clearForm(); fillRoomSelect();
     document.getElementById('patientForm').classList.add('active');
 }
 
@@ -294,8 +274,7 @@ function openPatientFormForRoom(wid, rid) {
     document.getElementById('editPatIdx').value = '-1';
     document.getElementById('editWardId').value = wid;
     document.getElementById('editRoomIdx').value = rid;
-    clearForm();
-    fillRoomSelect(rid);
+    clearForm(); fillRoomSelect(rid);
     document.getElementById('patientForm').classList.add('active');
 }
 
@@ -375,7 +354,6 @@ function exportData() {
     a.href = URL.createObjectURL(blob);
     a.download = 'AUH_backup_' + new Date().toISOString().split('T')[0] + '.json';
     a.click();
-    alert('✅ تم التصدير. شارك الملف مع الزملاء ليقوموا باستيراده.');
 }
 
 function importData() {
@@ -390,7 +368,6 @@ function importData() {
                     wardsData = data;
                     saveToGist();
                     renderDashboard();
-                    alert('✅ تم الاستيراد بنجاح');
                 }
             } catch(err) { alert('❌ الملف غير صالح'); }
         };
@@ -408,15 +385,11 @@ function resetAllData() {
 }
 
 function closePatientForm() { document.getElementById('patientForm').classList.remove('active'); }
-
 document.getElementById('wardModal').addEventListener('click', function(e) { if(e.target === this) closeModal(); });
 document.getElementById('patientForm').addEventListener('click', function(e) { if(e.target === this) closePatientForm(); });
 
-// بدء التشغيل
 loadFromGist();
-
-// تحديث دوري كل 30 ثانية
-setInterval(loadFromGist, 30000);
+setInterval(loadFromGist, 15000);
 </script>
 </body>
 </html>
