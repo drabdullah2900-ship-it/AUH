@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مشفى الجامعة بحلب - AUH</title>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <style>
         *{box-sizing:border-box;margin:0;padding:0}
         body{font-family:Tahoma;background:linear-gradient(135deg,#0a3d62,#1e90ff);min-height:100vh;padding:20px}
@@ -52,21 +50,24 @@
         .status-dot.green{background:#2ecc71;box-shadow:0 0 8px #2ecc71}
         .status-dot.red{background:#e74c3c}
         .ward-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:15px}
-        .loading{text-align:center;color:white;font-size:1.5em;padding:50px}
+        .sync-status{background:#2ecc71;color:white;padding:8px 15px;border-radius:20px;font-size:0.8em;display:inline-block;margin-bottom:15px}
+        .sync-status.offline{background:#e74c3c}
+        textarea.data-editor{width:100%;height:300px;font-family:monospace;font-size:0.85em;direction:ltr;padding:10px;border:2px solid #ddd;border-radius:10px;margin:10px 0}
     </style>
 </head>
 <body>
 <div class="header">
     <h1>🏥 مشفى جامعة حلب AUH</h1>
-    <p>لوحة متابعة الأجنحة والمرضى - بيانات مشتركة مباشرة 🔄</p>
+    <p>لوحة متابعة الأجنحة والمرضى</p>
 </div>
 <div class="top-bar">
-    <button class="btn btn-danger" onclick="resetAllData()">🔄 إعادة ضبط البيانات</button>
-    <button class="btn btn-info" onclick="exportData()">📥 تصدير نسخة احتياطية</button>
+    <button class="btn btn-danger" onclick="resetAllData()">🔄 إعادة ضبط</button>
+    <button class="btn btn-info" onclick="exportData()">📥 تصدير</button>
+    <button class="btn btn-warning" onclick="importData()">📤 استيراد</button>
+    <button class="btn btn-primary" onclick="showRawEditor()">📝 تعديل مباشر للبيانات</button>
 </div>
 
-<div class="loading" id="loading">⏳ جاري تحميل البيانات...</div>
-<div class="dashboard" id="dashboard" style="display:none"></div>
+<div class="dashboard" id="dashboard"></div>
 
 <div class="modal" id="wardModal">
     <div class="modal-content">
@@ -96,21 +97,19 @@
     </div>
 </div>
 
+<div class="form-overlay" id="rawEditorModal">
+    <div class="form-box" style="max-width:700px">
+        <h3>📝 تعديل البيانات مباشرة</h3>
+        <p style="color:#e74c3c;font-size:0.85em">⚠️ تحذير: هذا للمستخدمين المتقدمين فقط</p>
+        <textarea class="data-editor" id="rawDataEditor"></textarea>
+        <div class="form-actions">
+            <button class="btn btn-primary" onclick="saveRawData()">💾 حفظ التغييرات</button>
+            <button class="btn btn-danger" onclick="closeRawEditor()">❌ إلغاء</button>
+        </div>
+    </div>
+</div>
+
 <script>
-// ========== إعدادات Firebase الخاصة بك ==========
-const firebaseConfig = {
-  apiKey: "AIzaSyBfbvPwyDPgxAllPC9lKqEFWNSbIUN1aQg",
-  authDomain: "auh-hospital.firebaseapp.com",
-  databaseURL: "https://auh-hospital-default-rtdb.firebaseio.com",
-  projectId: "auh-hospital",
-  storageBucket: "auh-hospital.firebasestorage.app",
-  messagingSenderId: "13884014112",
-  appId: "1:13884014112:web:aec4efdc2b9186c50fc645"
-};
-
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-
 const defaultWards = [
     {id:1,name:"جناح الصدرية والكلية",rooms:[
         {number:"101",capacity:4,patients:[{name:"أحمد العلي",diagnosis:"ربو قصبي",specialist:"د. محمد نور",unit:"صدرية",status:"مقيم"},{name:"فاطمة الحسين",diagnosis:"فشل كلوي",specialist:"د. رنا قدور",unit:"كلية",status:"مقيم"}]},
@@ -153,33 +152,28 @@ const defaultWards = [
 ];
 
 let wardsData = [];
+loadData();
 
 function loadData() {
-    database.ref('wards').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            wardsData = data;
-            renderDashboard();
-        } else {
-            wardsData = JSON.parse(JSON.stringify(defaultWards));
-            saveAllData();
-            renderDashboard();
-        }
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('dashboard').style.display = 'grid';
-    }, (error) => {
-        document.getElementById('loading').textContent = '❌ فشل الاتصال. تأكد من تفعيل Realtime Database في وضع test mode';
-    });
+    let saved = localStorage.getItem('auh_wards');
+    if(saved) {
+        wardsData = JSON.parse(saved);
+    } else {
+        wardsData = JSON.parse(JSON.stringify(defaultWards));
+        saveData();
+    }
+    renderDashboard();
 }
 
-function saveAllData() {
-    database.ref('wards').set(wardsData);
+function saveData() {
+    localStorage.setItem('auh_wards', JSON.stringify(wardsData));
 }
 
 function resetAllData() {
     if(confirm('⚠️ هل أنت متأكد من إعادة ضبط جميع البيانات؟')) {
         wardsData = JSON.parse(JSON.stringify(defaultWards));
-        saveAllData();
+        saveData();
+        renderDashboard();
     }
 }
 
@@ -189,6 +183,27 @@ function exportData() {
     a.href = URL.createObjectURL(blob);
     a.download = 'AUH_backup_' + new Date().toISOString().split('T')[0] + '.json';
     a.click();
+}
+
+function importData() {
+    let inp = document.createElement('input');
+    inp.type = 'file'; inp.accept = '.json';
+    inp.onchange = function(e) {
+        let reader = new FileReader();
+        reader.onload = function(ev) {
+            try {
+                let data = JSON.parse(ev.target.result);
+                if(confirm('⚠️ استيراد البيانات سيستبدل كل البيانات الحالية. متأكد؟')) {
+                    wardsData = data;
+                    saveData();
+                    renderDashboard();
+                    alert('✅ تم الاستيراد بنجاح');
+                }
+            } catch(err) { alert('❌ الملف غير صالح'); }
+        };
+        reader.readAsText(e.target.files[0]);
+    };
+    inp.click();
 }
 
 function renderDashboard() {
@@ -304,31 +319,21 @@ function savePatient() {
     let diagnosis = document.getElementById('pDiagnosis').value.trim();
     let specialist = document.getElementById('pSpecialist').value.trim();
     if(!name || !diagnosis || !specialist) { alert('⚠️ الرجاء ملء جميع الحقول المطلوبة'); return; }
-    let patient = {
-        name, diagnosis, specialist,
-        unit: document.getElementById('pUnit').value,
-        status: document.getElementById('pStatus').value
-    };
+    let patient = {name, diagnosis, specialist, unit: document.getElementById('pUnit').value, status: document.getElementById('pStatus').value};
     if(pid === -1) {
-        if(w.rooms[rid].patients.length >= w.rooms[rid].capacity) {
-            alert('⚠️ هذه الغرفة ممتلئة! اختر غرفة أخرى.');
-            return;
-        }
+        if(w.rooms[rid].patients.length >= w.rooms[rid].capacity) { alert('⚠️ هذه الغرفة ممتلئة! اختر غرفة أخرى.'); return; }
         w.rooms[rid].patients.push(patient);
     } else {
         let oldRid = parseInt(document.getElementById('editRoomIdx').value);
         if(oldRid !== rid) {
-            if(w.rooms[rid].patients.length >= w.rooms[rid].capacity) {
-                alert('⚠️ الغرفة الجديدة ممتلئة!');
-                return;
-            }
+            if(w.rooms[rid].patients.length >= w.rooms[rid].capacity) { alert('⚠️ الغرفة الجديدة ممتلئة!'); return; }
             w.rooms[oldRid].patients.splice(pid, 1);
             w.rooms[rid].patients.push(patient);
         } else {
             w.rooms[rid].patients[pid] = patient;
         }
     }
-    saveAllData();
+    saveData();
     closePatientForm();
     openWard(wid);
 }
@@ -336,22 +341,35 @@ function savePatient() {
 function deletePatient(wid, rid, pid) {
     if(!confirm('⚠️ هل أنت متأكد من حذف هذا المريض؟')) return;
     wardsData.find(w=>w.id===wid).rooms[rid].patients.splice(pid, 1);
-    saveAllData();
+    saveData();
     openWard(wid);
 }
 
-function closePatientForm() {
-    document.getElementById('patientForm').classList.remove('active');
+function closePatientForm() { document.getElementById('patientForm').classList.remove('active'); }
+
+function showRawEditor() {
+    document.getElementById('rawDataEditor').value = JSON.stringify(wardsData, null, 2);
+    document.getElementById('rawEditorModal').classList.add('active');
 }
 
-document.getElementById('wardModal').addEventListener('click', function(e) {
-    if(e.target === this) closeModal();
-});
-document.getElementById('patientForm').addEventListener('click', function(e) {
-    if(e.target === this) closePatientForm();
-});
+function saveRawData() {
+    try {
+        let newData = JSON.parse(document.getElementById('rawDataEditor').value);
+        wardsData = newData;
+        saveData();
+        renderDashboard();
+        closeRawEditor();
+        alert('✅ تم حفظ البيانات بنجاح');
+    } catch(err) {
+        alert('❌ خطأ في تنسيق البيانات. تأكد من صحة JSON');
+    }
+}
 
-loadData();
+function closeRawEditor() { document.getElementById('rawEditorModal').classList.remove('active'); }
+
+document.getElementById('wardModal').addEventListener('click', function(e) { if(e.target === this) closeModal(); });
+document.getElementById('patientForm').addEventListener('click', function(e) { if(e.target === this) closePatientForm(); });
+document.getElementById('rawEditorModal').addEventListener('click', function(e) { if(e.target === this) closeRawEditor(); });
 </script>
 </body>
 </html>
