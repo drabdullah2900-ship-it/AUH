@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مشفى الجامعة بحلب - AUH</title>
+    <!-- مكتبات Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <style>
         *{box-sizing:border-box;margin:0;padding:0}
         body{font-family:Tahoma;background:linear-gradient(135deg,#0a3d62,#1e90ff);min-height:100vh;padding:20px}
@@ -50,19 +53,21 @@
         .status-dot.green{background:#2ecc71;box-shadow:0 0 8px #2ecc71}
         .status-dot.red{background:#e74c3c}
         .ward-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:15px}
+        .loading{text-align:center;color:white;font-size:1.5em;padding:50px}
     </style>
 </head>
 <body>
 <div class="header">
     <h1>🏥 مشفى جامعة حلب AUH</h1>
-    <p>لوحة متابعة الأجنحة والمرضى</p>
+    <p>لوحة متابعة الأجنحة والمرضى - بيانات مشتركة مباشرة</p>
 </div>
 <div class="top-bar">
     <button class="btn btn-danger" onclick="resetAllData()">🔄 إعادة ضبط البيانات</button>
     <button class="btn btn-info" onclick="exportData()">📥 تصدير نسخة احتياطية</button>
-    <button class="btn btn-warning" onclick="importData()">📤 استيراد نسخة</button>
 </div>
-<div class="dashboard" id="dashboard"></div>
+
+<div class="loading" id="loading">⏳ جاري تحميل البيانات...</div>
+<div class="dashboard" id="dashboard" style="display:none"></div>
 
 <!-- نافذة عرض الجناح -->
 <div class="modal" id="wardModal">
@@ -95,7 +100,22 @@
 </div>
 
 <script>
-// ==================== البيانات الافتراضية ====================
+// ========== اعدادات Firebase الخاصة بك (استبدلها) ==========
+const firebaseConfig = {
+  apiKey: "AIzaSyBfbvPwyDPgxAllPC9lKqEFWNSbIUN1aQg",
+  authDomain: "auh-hospital.firebaseapp.com",
+  databaseURL: "https://auh-hospital-default-rtdb.firebaseio.com",
+  projectId: "auh-hospital",
+  storageBucket: "auh-hospital.firebasestorage.app",
+  messagingSenderId: "13884014112",
+  appId: "1:13884014112:web:aec4efdc2b9186c50fc645"
+};
+
+// تهيئة Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// ========== البيانات الافتراضية ==========
 const defaultWards = [
     {id:1,name:"جناح الصدرية والكلية",rooms:[
         {number:"101",capacity:4,patients:[{name:"أحمد العلي",diagnosis:"ربو قصبي",specialist:"د. محمد نور",unit:"صدرية",status:"مقيم"},{name:"فاطمة الحسين",diagnosis:"فشل كلوي",specialist:"د. رنا قدور",unit:"كلية",status:"مقيم"}]},
@@ -137,27 +157,41 @@ const defaultWards = [
     ]}
 ];
 
-// ==================== تحميل البيانات ====================
 let wardsData = [];
+
+// تحميل البيانات من Firebase
 function loadData() {
-    let saved = localStorage.getItem('auh_wards');
-    if(saved) {
-        wardsData = JSON.parse(saved);
-    } else {
-        wardsData = JSON.parse(JSON.stringify(defaultWards));
-        saveData();
-    }
-    renderDashboard();
+    database.ref('wards').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            wardsData = data;
+            renderDashboard();
+        } else {
+            // أول مرة: إنشاء البيانات الافتراضية
+            wardsData = JSON.parse(JSON.stringify(defaultWards));
+            saveAllData();
+            renderDashboard();
+        }
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'grid';
+    }, (error) => {
+        alert('❌ فشل تحميل البيانات: ' + error.message);
+        document.getElementById('loading').textContent = 'فشل الاتصال بقاعدة البيانات';
+    });
 }
-function saveData() { localStorage.setItem('auh_wards', JSON.stringify(wardsData)); }
+
+function saveAllData() {
+    database.ref('wards').set(wardsData);
+}
+
 function resetAllData() {
     if(confirm('⚠️ هل أنت متأكد من إعادة ضبط جميع البيانات؟ ستفقد كل التعديلات.')) {
         wardsData = JSON.parse(JSON.stringify(defaultWards));
-        saveData();
-        renderDashboard();
-        alert('✅ تمت إعادة الضبط بنجاح');
+        saveAllData();
+        // التحديث سيحدث تلقائياً عبر listener
     }
 }
+
 function exportData() {
     let blob = new Blob([JSON.stringify(wardsData,null,2)], {type:'application/json'});
     let a = document.createElement('a');
@@ -165,28 +199,8 @@ function exportData() {
     a.download = 'AUH_backup_' + new Date().toISOString().split('T')[0] + '.json';
     a.click();
 }
-function importData() {
-    let inp = document.createElement('input');
-    inp.type = 'file'; inp.accept = '.json';
-    inp.onchange = function(e) {
-        let reader = new FileReader();
-        reader.onload = function(ev) {
-            try {
-                let data = JSON.parse(ev.target.result);
-                if(confirm('⚠️ استيراد البيانات سيستبدل كل البيانات الحالية. متأكد؟')) {
-                    wardsData = data;
-                    saveData();
-                    renderDashboard();
-                    alert('✅ تم الاستيراد بنجاح');
-                }
-            } catch(err) { alert('❌ الملف غير صالح'); }
-        };
-        reader.readAsText(e.target.files[0]);
-    };
-    inp.click();
-}
 
-// ==================== عرض اللوحة ====================
+// ========== عرض اللوحة ==========
 function renderDashboard() {
     document.getElementById('dashboard').innerHTML = wardsData.map(w => {
         let total = w.rooms.reduce((s,r) => s + r.capacity, 0);
@@ -200,7 +214,7 @@ function renderDashboard() {
     }).join('');
 }
 
-// ==================== فتح جناح ====================
+// ========== فتح جناح ==========
 let currentWardId = null;
 function openWard(id) {
     currentWardId = id;
@@ -235,7 +249,7 @@ function closeModal() {
     renderDashboard();
 }
 
-// ==================== إضافة وتعديل وحذف مرضى ====================
+// ========== إدارة المرضى ==========
 function openPatientForm() {
     document.getElementById('formTitle').textContent = '➕ إضافة مريض جديد';
     document.getElementById('editPatIdx').value = '-1';
@@ -320,21 +334,21 @@ function savePatient() {
             w.rooms[rid].patients[pid] = patient;
         }
     }
-    saveData();
+    saveAllData();
     closePatientForm();
-    openWard(wid);
+    openWard(wid); // إعادة فتح الجناح لعرض التغييرات
 }
 function deletePatient(wid, rid, pid) {
     if(!confirm('⚠️ هل أنت متأكد من حذف هذا المريض؟')) return;
     wardsData.find(w=>w.id===wid).rooms[rid].patients.splice(pid, 1);
-    saveData();
+    saveAllData();
     openWard(wid);
 }
 function closePatientForm() {
     document.getElementById('patientForm').classList.remove('active');
 }
 
-// ==================== إغلاق النوافذ ====================
+// إغلاق النوافذ
 document.getElementById('wardModal').addEventListener('click', function(e) {
     if(e.target === this) closeModal();
 });
@@ -342,7 +356,7 @@ document.getElementById('patientForm').addEventListener('click', function(e) {
     if(e.target === this) closePatientForm();
 });
 
-// ==================== بدء التشغيل ====================
+// بدء التحميل
 loadData();
 </script>
 </body>
