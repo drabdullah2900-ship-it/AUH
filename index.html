@@ -7,64 +7,52 @@
     <style>
         *{box-sizing:border-box;margin:0;padding:0}
         body{font-family:Tahoma;background:linear-gradient(135deg,#0a3d62,#1e90ff);min-height:100vh;padding:20px}
-        .header{text-align:center;color:white;margin-bottom:15px}
-        .header h1{font-size:2.2em;text-shadow:2px 2px 4px rgba(0,0,0,0.3)}
-        .top-bar{text-align:center;margin-bottom:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center}
-        .dashboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:25px;max-width:1400px;margin:0 auto}
+        .header{text-align:center;color:white;margin-bottom:10px}
+        .header h1{font-size:2em;text-shadow:2px 2px 4px rgba(0,0,0,0.3)}
+        .top-bar{text-align:center;margin-bottom:15px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;align-items:center}
+        .dashboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;max-width:1400px;margin:0 auto}
         .ward-card{background:white;border-radius:20px;padding:20px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,0.2);transition:all 0.3s}
         .ward-card:hover{transform:translateY(-5px)}
-        .ward-card h2{color:#0a3d62;margin-bottom:10px}
+        .ward-card h2{color:#0a3d62;margin-bottom:10px;font-size:1.2em}
         .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:1000;justify-content:center;align-items:center;backdrop-filter:blur(5px)}
         .modal.active{display:flex}
-        .modal-content{background:white;border-radius:20px;width:95%;max-width:1100px;max-height:90vh;overflow-y:auto;padding:25px}
-        .close-btn{position:sticky;top:10px;float:left;background:none;border:none;font-size:2.2em;cursor:pointer;color:#e74c3c;z-index:10}
-        .room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:15px;margin-top:15px;clear:both}
-        .room{border:2px solid #ddd;border-radius:15px;padding:15px;position:relative}
-        .room.available{border-color:#2ecc71;background:#f0fff4;box-shadow:0 0 15px rgba(46,204,113,0.3)}
+        .modal-content{background:white;border-radius:20px;width:95%;max-width:1100px;max-height:90vh;overflow-y:auto;padding:20px}
+        .close-btn{position:sticky;top:10px;float:left;background:none;border:none;font-size:2em;cursor:pointer;color:#e74c3c;z-index:10}
+        .room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:12px;clear:both}
+        .room{border:2px solid #ddd;border-radius:15px;padding:12px}
+        .room.available{border-color:#2ecc71;background:#f0fff4;box-shadow:0 0 12px rgba(46,204,113,0.3)}
         .room.full{border-color:#e74c3c;background:#fff5f5}
-        .patient{background:#f8f9fa;border-radius:10px;padding:10px;margin:8px 0;border-right:4px solid #1e90ff;font-size:0.9em}
-        .tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.75em;font-weight:bold;margin:2px}
+        .patient{background:#f8f9fa;border-radius:10px;padding:8px;margin:6px 0;border-right:4px solid #1e90ff;font-size:0.85em}
+        .tag{display:inline-block;padding:2px 8px;border-radius:15px;font-size:0.7em;font-weight:bold;margin:2px}
         .tag.مقيم{background:#ffeaa7;color:#d68910}
         .tag.قيد-تخريج{background:#74b9ff;color:#054a91}
         .tag.مخرج{background:#dfe6e9;color:#636e72}
-        .available-badge{background:#2ecc71;color:white;padding:5px 12px;border-radius:20px;font-size:0.8em;animation:pulse 1.5s infinite;display:inline-block}
-        .full-badge{background:#e74c3c;color:white;padding:5px 12px;border-radius:20px;font-size:0.8em;display:inline-block}
-        @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,204,113,0.5)}70%{box-shadow:0 0 0 10px rgba(46,204,113,0)}100%{box-shadow:0 0 0 0 rgba(46,204,113,0)}}
-        .btn{padding:8px 16px;border:none;border-radius:20px;cursor:pointer;font-weight:bold;margin:2px;font-family:inherit;font-size:0.85em;transition:all 0.2s}
-        .btn:hover{opacity:0.9;transform:scale(1.05)}
+        .available-badge{background:#2ecc71;color:white;padding:4px 10px;border-radius:15px;font-size:0.75em;display:inline-block}
+        .full-badge{background:#e74c3c;color:white;padding:4px 10px;border-radius:15px;font-size:0.75em;display:inline-block}
+        .btn{padding:8px 14px;border:none;border-radius:20px;cursor:pointer;font-weight:bold;margin:2px;font-family:inherit;font-size:0.8em;transition:all 0.2s}
+        .btn:hover{opacity:0.9;transform:scale(1.03)}
         .btn-primary{background:#2ecc71;color:white}
         .btn-warning{background:#f39c12;color:white}
         .btn-danger{background:#e74c3c;color:white}
         .btn-info{background:#3498db;color:white}
-        .btn-sm{padding:5px 10px;font-size:0.75em}
+        .btn-sm{padding:4px 8px;font-size:0.7em}
         .form-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:2000;justify-content:center;align-items:center;backdrop-filter:blur(5px)}
         .form-overlay.active{display:flex}
-        .form-box{background:white;border-radius:20px;padding:25px;width:95%;max-width:500px;text-align:right}
-        .form-box h3{color:#0a3d62;text-align:center;margin-bottom:20px}
-        .form-group{margin-bottom:12px}
-        .form-group label{display:block;margin-bottom:4px;font-weight:bold;color:#333}
-        .form-group input,.form-group select{width:100%;padding:10px;border:2px solid #ddd;border-radius:10px;font-family:inherit;font-size:0.95em}
-        .form-group input:focus,.form-group select:focus{outline:none;border-color:#1e90ff}
-        .form-actions{display:flex;gap:10px;justify-content:center;margin-top:20px}
-        .status-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:5px}
-        .status-dot.green{background:#2ecc71;box-shadow:0 0 8px #2ecc71}
+        .form-box{background:white;border-radius:20px;padding:20px;width:95%;max-width:450px;text-align:right}
+        .form-box h3{color:#0a3d62;text-align:center;margin-bottom:15px}
+        .form-group{margin-bottom:10px}
+        .form-group label{display:block;margin-bottom:3px;font-weight:bold;color:#333;font-size:0.9em}
+        .form-group input,.form-group select{width:100%;padding:8px;border:2px solid #ddd;border-radius:10px;font-family:inherit;font-size:0.9em}
+        .form-actions{display:flex;gap:8px;justify-content:center;margin-top:15px}
+        .status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:4px}
+        .status-dot.green{background:#2ecc71}
         .status-dot.red{background:#e74c3c}
-        .ward-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:15px}
-        .sync-badge{background:#2ecc71;color:white;padding:6px 14px;border-radius:20px;font-size:0.8em;animation:pulse 2s infinite}
-        .sync-badge.error{background:#e74c3c;animation:none}
-        .sync-badge.loading{background:#f39c12;animation:pulse 1s infinite}
-
-        /* شريط التحميل */
-        .loading-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:5000;display:flex;justify-content:center;align-items:center;flex-direction:column}
-        .loading-screen.hidden{display:none}
-        .loader-circle{width:100px;height:100px;position:relative}
-        .loader-circle svg{transform:rotate(-90deg);width:100px;height:100px}
-        .loader-circle circle{fill:none;stroke-width:8;stroke-linecap:round}
-        .loader-circle .bg{stroke:#333}
-        .loader-circle .progress{stroke:#2ecc71;stroke-dasharray:283;stroke-dashoffset:283;transition:stroke-dashoffset 0.5s ease}
-        .loader-text{color:white;font-size:2em;font-weight:bold;margin-top:20px}
-        .loader-sub{color:#aaa;font-size:1em;margin-top:5px}
-        .btn-refresh{background:#2ecc71;color:white;padding:12px 30px;border:none;border-radius:30px;font-size:1.1em;cursor:pointer;margin-top:20px;font-weight:bold;animation:pulse 2s infinite}
+        .ward-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+        .sync-badge{color:white;padding:5px 12px;border-radius:20px;font-size:0.75em;font-weight:bold}
+        .sync-badge.online{background:#2ecc71;animation:pulse 2s infinite}
+        .sync-badge.saving{background:#f39c12}
+        .sync-badge.offline{background:#e74c3c}
+        @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,204,113,0.5)}70%{box-shadow:0 0 0 10px rgba(46,204,113,0)}100%{box-shadow:0 0 0 0 rgba(46,204,113,0)}}
     </style>
 </head>
 <body>
@@ -73,27 +61,11 @@
     <p>لوحة متابعة الأجنحة والمرضى - بيانات مشتركة فورية 🔄</p>
 </div>
 <div class="top-bar">
-    <span class="sync-badge" id="syncStatus">⏳ جاري التحميل...</span>
-    <button class="btn btn-info" onclick="exportData()">📥 تصدير</button>
-    <button class="btn btn-warning" onclick="importData()">📤 استيراد</button>
+    <span class="sync-badge online" id="syncStatus">🟢 متصل</span>
     <button class="btn btn-danger" onclick="resetAllData()">🔄 إعادة ضبط</button>
-    <button class="btn btn-primary" onclick="forceRefresh()">🔄 تحديث الآن</button>
 </div>
 
 <div class="dashboard" id="dashboard"></div>
-
-<!-- شاشة التحميل -->
-<div class="loading-screen" id="loadingScreen">
-    <div class="loader-circle">
-        <svg viewBox="0 0 100 100">
-            <circle class="bg" cx="50" cy="50" r="45"/>
-            <circle class="progress" id="progressCircle" cx="50" cy="50" r="45"/>
-        </svg>
-    </div>
-    <div class="loader-text" id="loadPercent">0%</div>
-    <div class="loader-sub" id="loadMsg">⏳ جاري تحميل البيانات من السحابة...</div>
-    <button class="btn-refresh hidden" id="btnRetry" onclick="forceRefresh()">🔄 إعادة المحاولة</button>
-</div>
 
 <div class="modal" id="wardModal">
     <div class="modal-content">
@@ -116,7 +88,7 @@
         <div class="form-group"><label>📊 الحالة</label><select id="pStatus"><option>مقيم</option><option>قيد التخريج</option><option>مخرج</option></select></div>
         <div class="form-group"><label>🚪 الغرفة</label><select id="pRoom"></select></div>
         <div class="form-actions">
-            <button class="btn btn-primary" onclick="savePatient()">💾 حفظ ومشاركة</button>
+            <button class="btn btn-primary" onclick="savePatient()">💾 حفظ</button>
             <button class="btn btn-danger" onclick="closePatientForm()">❌ إلغاء</button>
         </div>
         <input type="hidden" id="editWardId"><input type="hidden" id="editRoomIdx"><input type="hidden" id="editPatIdx" value="-1">
@@ -131,143 +103,71 @@ const GIST_API = `https://api.github.com/gists/${GIST_ID}`;
 const GITHUB_TOKEN = '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';
 
 let wardsData = [];
-let progressInterval = null;
+let lastUpdate = 0;
 
 const defaultWards = [
     {id:1,name:"جناح الصدرية والكلية",rooms:[
         {number:"101",capacity:4,patients:[{name:"أحمد العلي",diagnosis:"ربو قصبي",specialist:"د. محمد نور",unit:"صدرية",status:"مقيم"},{name:"فاطمة الحسين",diagnosis:"فشل كلوي",specialist:"د. رنا قدور",unit:"كلية",status:"مقيم"}]},
         {number:"102",capacity:4,patients:[{name:"محمود الخطيب",diagnosis:"ذات رئة",specialist:"د. محمد نور",unit:"صدرية",status:"قيد التخريج"}]},
-        {number:"103",capacity:4,patients:[]},
-        {number:"104",capacity:4,patients:[{name:"سارة العمر",diagnosis:"تهاب كبيبات",specialist:"د. رنا قدور",unit:"كلية",status:"مقيم"},{name:"علي حسن",diagnosis:"انسداد رئوي",specialist:"د. محمد نور",unit:"صدرية",status:"مقيم"},{name:"نور الهدى",diagnosis:"تهاب قصبات",specialist:"د. أحمد شيخ",unit:"صدرية",status:"مخرج"}]},
-        {number:"105",capacity:4,patients:[{name:"خالد الجاسم",diagnosis:"غسيل كلى",specialist:"د. رنا قدور",unit:"كلية",status:"مقيم"}]},
-        {number:"106",capacity:4,patients:[]},
-        {number:"107",capacity:4,patients:[{name:"ريم علي",diagnosis:"ربو حاد",specialist:"د. أحمد شيخ",unit:"صدرية",status:"قيد التخريج"}]},
-        {number:"108",capacity:4,patients:[]}
+        {number:"103",capacity:4,patients:[]},{number:"104",capacity:4,patients:[{name:"سارة العمر",diagnosis:"تهاب كبيبات",specialist:"د. رنا قدور",unit:"كلية",status:"مقيم"},{name:"علي حسن",diagnosis:"انسداد رئوي",specialist:"د. محمد نور",unit:"صدرية",status:"مقيم"},{name:"نور الهدى",diagnosis:"تهاب قصبات",specialist:"د. أحمد شيخ",unit:"صدرية",status:"مخرج"}]},
+        {number:"105",capacity:4,patients:[{name:"خالد الجاسم",diagnosis:"غسيل كلى",specialist:"د. رنا قدور",unit:"كلية",status:"مقيم"}]},{number:"106",capacity:4,patients:[]},{number:"107",capacity:4,patients:[{name:"ريم علي",diagnosis:"ربو حاد",specialist:"د. أحمد شيخ",unit:"صدرية",status:"قيد التخريج"}]},{number:"108",capacity:4,patients:[]}
     ]},
     {id:2,name:"جناح الهضمية والعصبية",rooms:[
-        {number:"201",capacity:4,patients:[{name:"عمر القاضي",diagnosis:"تشمع كبد",specialist:"د. سامر زين",unit:"هضمية",status:"مقيم"}]},
-        {number:"202",capacity:4,patients:[]},
-        {number:"203",capacity:4,patients:[{name:"لينا خليل",diagnosis:"صرع",specialist:"د. هاني يونس",unit:"عصبية",status:"مقيم"},{name:"وسام درويش",diagnosis:"قرحة هضمية",specialist:"د. سامر زين",unit:"هضمية",status:"مقيم"}]}
+        {number:"201",capacity:4,patients:[{name:"عمر القاضي",diagnosis:"تشمع كبد",specialist:"د. سامر زين",unit:"هضمية",status:"مقيم"}]},{number:"202",capacity:4,patients:[]},{number:"203",capacity:4,patients:[{name:"لينا خليل",diagnosis:"صرع",specialist:"د. هاني يونس",unit:"عصبية",status:"مقيم"},{name:"وسام درويش",diagnosis:"قرحة هضمية",specialist:"د. سامر زين",unit:"هضمية",status:"مقيم"}]}
     ]},
-    {id:3,name:"جناح العناية الداخلية",rooms:[
-        {number:"301",capacity:4,patients:[{name:"حسن اليوسف",diagnosis:"سكري غير معاوض",specialist:"د. ليلى عثمان",unit:"داخلية",status:"مقيم"}]},
-        {number:"302",capacity:4,patients:[]}
-    ]},
-    {id:4,name:"الخاص الثالث",rooms:[
-        {number:"401",capacity:2,patients:[{name:"كريم سعد",diagnosis:"متابعة قلبية",specialist:"د. نضال الحافظ",unit:"قلبية",status:"مقيم"}]},
-        {number:"402",capacity:2,patients:[]}
-    ]},
-    {id:5,name:"الخاص الرابع",rooms:[
-        {number:"501",capacity:2,patients:[]},
-        {number:"502",capacity:2,patients:[{name:"سوسن عبدالله",diagnosis:"جراحة عامة",specialist:"د. فادي حمدان",unit:"جراحة",status:"قيد التخريج"}]}
-    ]},
-    {id:6,name:"الخارجيات",rooms:[
-        {number:"خ-1",capacity:6,patients:[{name:"رامي الأسود",diagnosis:"تطبيب خارجي",specialist:"د. نورا عبدالقادر",unit:"خارجية",status:"مقيم"},{name:"هبة عكاش",diagnosis:"تطبيب خارجي",specialist:"د. نورا عبدالقادر",unit:"خارجية",status:"مقيم"}]}
-    ]},
+    {id:3,name:"جناح العناية الداخلية",rooms:[{number:"301",capacity:4,patients:[{name:"حسن اليوسف",diagnosis:"سكري غير معاوض",specialist:"د. ليلى عثمان",unit:"داخلية",status:"مقيم"}]},{number:"302",capacity:4,patients:[]}]},
+    {id:4,name:"الخاص الثالث",rooms:[{number:"401",capacity:2,patients:[{name:"كريم سعد",diagnosis:"متابعة قلبية",specialist:"د. نضال الحافظ",unit:"قلبية",status:"مقيم"}]},{number:"402",capacity:2,patients:[]}]},
+    {id:5,name:"الخاص الرابع",rooms:[{number:"501",capacity:2,patients:[]},{number:"502",capacity:2,patients:[{name:"سوسن عبدالله",diagnosis:"جراحة عامة",specialist:"د. فادي حمدان",unit:"جراحة",status:"قيد التخريج"}]}]},
+    {id:6,name:"الخارجيات",rooms:[{number:"خ-1",capacity:6,patients:[{name:"رامي الأسود",diagnosis:"تطبيب خارجي",specialist:"د. نورا عبدالقادر",unit:"خارجية",status:"مقيم"},{name:"هبة عكاش",diagnosis:"تطبيب خارجي",specialist:"د. نورا عبدالقادر",unit:"خارجية",status:"مقيم"}]}]},
     {id:7,name:"العناية القلبية والجراحات",rooms:[
-        {number:"601 وعائية",capacity:3,patients:[{name:"عدنان الريس",diagnosis:"بعد قثطرة",specialist:"د. نضال الحافظ",unit:"قلبية",status:"مقيم"}]},
-        {number:"602 عصبية",capacity:3,patients:[]},
-        {number:"603 عظمية",capacity:3,patients:[{name:"جهاد المصري",diagnosis:"كسر فخذ",specialist:"د. عامر حلبي",unit:"جراحة عظمية",status:"مقيم"}]},
-        {number:"604 بولية",capacity:3,patients:[]},
-        {number:"605 أورام",capacity:3,patients:[]},
-        {number:"606 عينية",capacity:3,patients:[]}
+        {number:"601 وعائية",capacity:3,patients:[{name:"عدنان الريس",diagnosis:"بعد قثطرة",specialist:"د. نضال الحافظ",unit:"قلبية",status:"مقيم"}]},{number:"602 عصبية",capacity:3,patients:[]},{number:"603 عظمية",capacity:3,patients:[{name:"جهاد المصري",diagnosis:"كسر فخذ",specialist:"د. عامر حلبي",unit:"جراحة عظمية",status:"مقيم"}]},{number:"604 بولية",capacity:3,patients:[]},{number:"605 أورام",capacity:3,patients:[]},{number:"606 عينية",capacity:3,patients:[]}
     ]}
 ];
 
-// شريط التحميل
-let loadProgress = 0;
-function startLoading() {
-    document.getElementById('loadingScreen').classList.remove('hidden');
-    document.getElementById('btnRetry').classList.add('hidden');
-    document.getElementById('loadMsg').textContent = '⏳ جاري تحميل البيانات من السحابة...';
-    loadProgress = 0;
-    updateProgress(0);
-    progressInterval = setInterval(() => {
-        if (loadProgress < 80) {
-            loadProgress += Math.random() * 10;
-            updateProgress(Math.min(loadProgress, 80));
-        }
-    }, 300);
-}
-
-function updateProgress(percent) {
-    percent = Math.round(percent);
-    document.getElementById('loadPercent').textContent = percent + '%';
-    let offset = 283 - (283 * percent / 100);
-    document.getElementById('progressCircle').style.strokeDashoffset = offset;
-}
-
-function finishLoading(success) {
-    clearInterval(progressInterval);
-    if (success) {
-        updateProgress(100);
-        document.getElementById('loadMsg').textContent = '✅ تم التحميل بنجاح!';
-        setTimeout(() => {
-            document.getElementById('loadingScreen').classList.add('hidden');
-        }, 500);
-    } else {
-        updateProgress(0);
-        document.getElementById('loadMsg').textContent = '❌ فشل تحميل البيانات من السحابة. تم تحميل البيانات المحلية.';
-        document.getElementById('btnRetry').classList.remove('hidden');
-        setTimeout(() => {
-            document.getElementById('loadingScreen').classList.add('hidden');
-        }, 2000);
-    }
-}
-
 async function loadFromGist() {
-    let success = false;
     try {
-        let response = await fetch(RAW_URL + '?t=' + Date.now());
+        let response = await fetch(RAW_URL + '?t=' + Date.now(), {cache: 'no-store'});
         if (!response.ok) throw new Error('فشل');
         let text = await response.text();
         if (!text || text.trim() === '') throw new Error('فارغ');
-        wardsData = JSON.parse(text);
-        saveToLocal();
-        success = true;
+        let newData = JSON.parse(text);
+        let newStr = JSON.stringify(newData);
+        let oldStr = JSON.stringify(wardsData);
+        if (newStr !== oldStr) {
+            wardsData = newData;
+            saveToLocal();
+            renderDashboard();
+            console.log('🔄 تم تحديث البيانات من السحابة');
+        }
         setStatus('online');
+        lastUpdate = Date.now();
     } catch (err) {
         console.log('تحميل محلي...');
-        loadFromLocal();
+        if (wardsData.length === 0) loadFromLocal();
         setStatus('offline');
     }
-    return success;
 }
 
 function loadFromLocal() {
     let saved = localStorage.getItem('auh_wards');
-    if (saved) {
-        wardsData = JSON.parse(saved);
-    } else {
-        wardsData = JSON.parse(JSON.stringify(defaultWards));
-        saveToLocal();
-    }
+    if (saved) { wardsData = JSON.parse(saved); renderDashboard(); }
+    else { wardsData = JSON.parse(JSON.stringify(defaultWards)); saveData(); renderDashboard(); }
 }
 
-async function initLoad() {
-    startLoading();
-    let success = await loadFromGist();
-    finishLoading(success);
-    renderDashboard();
-}
-
-function forceRefresh() {
-    document.getElementById('btnRetry').classList.add('hidden');
-    initLoad();
-}
+function saveData() { localStorage.setItem('auh_wards', JSON.stringify(wardsData)); }
 
 function saveToLocal() { localStorage.setItem('auh_wards', JSON.stringify(wardsData)); }
 
 function setStatus(status) {
     let badge = document.getElementById('syncStatus');
-    if (status === 'online') { badge.textContent = '🟢 متصل - بيانات مشتركة'; badge.className = 'sync-badge'; }
-    else if (status === 'loading') { badge.textContent = '🟡 جاري التحميل...'; badge.className = 'sync-badge loading'; }
-    else { badge.textContent = '🔴 غير متصل - بيانات محلية'; badge.className = 'sync-badge error'; }
+    if (status === 'online') { badge.textContent = '🟢 متصل'; badge.className = 'sync-badge online'; }
+    else if (status === 'saving') { badge.textContent = '🟡 جاري الحفظ...'; badge.className = 'sync-badge saving'; }
+    else { badge.textContent = '🔴 غير متصل'; badge.className = 'sync-badge offline'; }
 }
 
 async function saveToGist() {
-    saveToLocal();
-    setStatus('loading');
+    setStatus('saving');
+    saveData();
     try {
         let response = await fetch(GIST_API, {
             method: 'PATCH',
@@ -276,11 +176,20 @@ async function saveToGist() {
         });
         if (response.ok) {
             setStatus('online');
-            console.log('✅ تم الحفظ والمشاركة');
+            lastUpdate = Date.now();
+            console.log('✅ تم الحفظ على السحابة');
         } else {
             setStatus('offline');
         }
     } catch (err) { setStatus('offline'); }
+}
+
+function resetAllData() {
+    if(confirm('⚠️ متأكد من إعادة ضبط جميع البيانات؟')) {
+        wardsData = JSON.parse(JSON.stringify(defaultWards));
+        saveToGist();
+        renderDashboard();
+    }
 }
 
 function renderDashboard() {
@@ -305,10 +214,10 @@ function openWard(id) {
     document.getElementById('roomGrid').innerHTML = w.rooms.map((r,ri) => {
         let avail = r.capacity - r.patients.length;
         return `<div class="room ${avail>0?'available':'full'}">
-            <h4>🚪 غرفة ${r.number} ${avail>0 ? `<span class="available-badge">${avail} متاح</span>` : '<span class="full-badge">ممتلئة</span>'}</h4>
-            ${r.patients.length===0 ? '<p style="color:#888;text-align:center;padding:10px;">🛏️ غرفة فارغة</p>' : ''}
-            ${r.patients.map((p,pi) => `<div class="patient"><strong>👤 ${p.name}</strong><br>📋 ${p.diagnosis}<br>👨‍⚕️ ${p.specialist}<br>🏷️ ${p.unit}<br><span class="tag ${p.status.replace(/\s/g,'-')}">${p.status}</span><div style="margin-top:6px;"><button class="btn btn-warning btn-sm" onclick="event.stopPropagation();editPatient(${id},${ri},${pi})">✏️ تعديل</button><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePatient(${id},${ri},${pi})">🗑️ حذف</button></div></div>`).join('')}
-            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openPatientFormForRoom(${id},${ri})" style="margin-top:8px;width:100%;">➕ حجز سرير</button>
+            <h4>🚪 ${r.number} ${avail>0 ? `<span class="available-badge">${avail} متاح</span>` : '<span class="full-badge">ممتلئة</span>'}</h4>
+            ${r.patients.length===0 ? '<p style="color:#888;text-align:center;padding:8px;">🛏️ فارغة</p>' : ''}
+            ${r.patients.map((p,pi) => `<div class="patient"><strong>👤 ${p.name}</strong><br>📋 ${p.diagnosis}<br>👨‍⚕️ ${p.specialist}<br>🏷️ ${p.unit}<br><span class="tag ${p.status.replace(/\s/g,'-')}">${p.status}</span><div style="margin-top:4px;"><button class="btn btn-warning btn-sm" onclick="event.stopPropagation();editPatient(${id},${ri},${pi})">✏️</button><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deletePatient(${id},${ri},${pi})">🗑️</button></div></div>`).join('')}
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openPatientFormForRoom(${id},${ri})" style="margin-top:6px;width:100%;">➕ حجز سرير</button>
         </div>`;
     }).join('');
     document.getElementById('wardModal').classList.add('active');
@@ -322,21 +231,17 @@ function clearForm() { document.getElementById('pName').value=''; document.getEl
 function fillRoomSelect(selectedIdx=null) { let w=wardsData.find(w=>w.id===currentWardId); let sel=document.getElementById('pRoom'); sel.innerHTML=w.rooms.map((r,i)=>{ let avail=r.capacity-r.patients.length; let s=(selectedIdx!==null&&i===selectedIdx)?'selected':''; let d=(avail<=0&&i!==selectedIdx)?'disabled':''; return `<option value="${i}" ${s} ${d}>غرفة ${r.number} (${avail>0?avail+' متاح':'ممتلئة'})</option>`; }).join(''); }
 function savePatient() { let wid=parseInt(document.getElementById('editWardId').value); let rid=parseInt(document.getElementById('pRoom').value); let pid=parseInt(document.getElementById('editPatIdx').value); let w=wardsData.find(w=>w.id===wid); let name=document.getElementById('pName').value.trim(); let diagnosis=document.getElementById('pDiagnosis').value.trim(); let specialist=document.getElementById('pSpecialist').value.trim(); if(!name||!diagnosis||!specialist){alert('⚠️ الرجاء ملء جميع الحقول');return;} let patient={name,diagnosis,specialist,unit:document.getElementById('pUnit').value,status:document.getElementById('pStatus').value}; if(pid===-1){if(w.rooms[rid].patients.length>=w.rooms[rid].capacity){alert('⚠️ الغرفة ممتلئة!');return;}w.rooms[rid].patients.push(patient);}else{let oldRid=parseInt(document.getElementById('editRoomIdx').value);if(oldRid!==rid){if(w.rooms[rid].patients.length>=w.rooms[rid].capacity){alert('⚠️ الغرفة الجديدة ممتلئة!');return;}w.rooms[oldRid].patients.splice(pid,1);w.rooms[rid].patients.push(patient);}else{w.rooms[rid].patients[pid]=patient;}} saveToGist(); closePatientForm(); openWard(wid); }
 function deletePatient(wid, rid, pid) { if(!confirm('⚠️ متأكد من حذف المريض؟'))return; wardsData.find(w=>w.id===wid).rooms[rid].patients.splice(pid,1); saveToGist(); openWard(wid); }
-function exportData() { let blob=new Blob([JSON.stringify(wardsData,null,2)],{type:'application/json'}); let a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='AUH_backup_'+new Date().toISOString().split('T')[0]+'.json'; a.click(); }
-function importData() { let inp=document.createElement('input'); inp.type='file';inp.accept='.json';inp.onchange=function(e){let reader=new FileReader();reader.onload=function(ev){try{let data=JSON.parse(ev.target.result);if(confirm('⚠️ استيراد البيانات سيستبدل كل البيانات الحالية. متأكد؟')){wardsData=data;saveToGist();renderDashboard();}}catch(err){alert('❌ الملف غير صالح');}};reader.readAsText(e.target.files[0]);};inp.click(); }
-function resetAllData() { if(confirm('⚠️ متأكد من إعادة ضبط جميع البيانات؟')){wardsData=JSON.parse(JSON.stringify(defaultWards));saveToGist();renderDashboard();} }
 function closePatientForm() { document.getElementById('patientForm').classList.remove('active'); }
 document.getElementById('wardModal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 document.getElementById('patientForm').addEventListener('click',function(e){if(e.target===this)closePatientForm();});
 
-// بدء التشغيل مع شاشة التحميل
-initLoad();
+// تحميل أولي
+loadFromGist().then(() => {
+    if (wardsData.length === 0) loadFromLocal();
+});
 
-// تحديث تلقائي كل 8 ثواني
-setInterval(async () => {
-    let success = await loadFromGist();
-    if (success) renderDashboard();
-}, 8000);
+// تحديث كل 5 ثواني
+setInterval(loadFromGist, 5000);
 </script>
 </body>
 </html>
