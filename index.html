@@ -52,7 +52,19 @@
         .ward-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:15px}
         .sync-badge{background:#2ecc71;color:white;padding:6px 14px;border-radius:20px;font-size:0.8em;animation:pulse 2s infinite}
         .sync-badge.error{background:#e74c3c;animation:none}
-        .loading-text{color:white;text-align:center;font-size:1.5em;padding:50px}
+        .sync-badge.loading{background:#f39c12;animation:pulse 1s infinite}
+
+        /* شريط التحميل */
+        .loading-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:5000;display:flex;justify-content:center;align-items:center;flex-direction:column}
+        .loading-screen.hidden{display:none}
+        .loader-circle{width:100px;height:100px;position:relative}
+        .loader-circle svg{transform:rotate(-90deg);width:100px;height:100px}
+        .loader-circle circle{fill:none;stroke-width:8;stroke-linecap:round}
+        .loader-circle .bg{stroke:#333}
+        .loader-circle .progress{stroke:#2ecc71;stroke-dasharray:283;stroke-dashoffset:283;transition:stroke-dashoffset 0.5s ease}
+        .loader-text{color:white;font-size:2em;font-weight:bold;margin-top:20px}
+        .loader-sub{color:#aaa;font-size:1em;margin-top:5px}
+        .btn-refresh{background:#2ecc71;color:white;padding:12px 30px;border:none;border-radius:30px;font-size:1.1em;cursor:pointer;margin-top:20px;font-weight:bold;animation:pulse 2s infinite}
     </style>
 </head>
 <body>
@@ -65,10 +77,23 @@
     <button class="btn btn-info" onclick="exportData()">📥 تصدير</button>
     <button class="btn btn-warning" onclick="importData()">📤 استيراد</button>
     <button class="btn btn-danger" onclick="resetAllData()">🔄 إعادة ضبط</button>
+    <button class="btn btn-primary" onclick="forceRefresh()">🔄 تحديث الآن</button>
 </div>
 
-<div id="loadingMsg" class="loading-text">⏳ جاري تحميل البيانات من السحابة...</div>
-<div class="dashboard" id="dashboard" style="display:none"></div>
+<div class="dashboard" id="dashboard"></div>
+
+<!-- شاشة التحميل -->
+<div class="loading-screen" id="loadingScreen">
+    <div class="loader-circle">
+        <svg viewBox="0 0 100 100">
+            <circle class="bg" cx="50" cy="50" r="45"/>
+            <circle class="progress" id="progressCircle" cx="50" cy="50" r="45"/>
+        </svg>
+    </div>
+    <div class="loader-text" id="loadPercent">0%</div>
+    <div class="loader-sub" id="loadMsg">⏳ جاري تحميل البيانات من السحابة...</div>
+    <button class="btn-refresh hidden" id="btnRetry" onclick="forceRefresh()">🔄 إعادة المحاولة</button>
+</div>
 
 <div class="modal" id="wardModal">
     <div class="modal-content">
@@ -106,6 +131,7 @@ const GIST_API = `https://api.github.com/gists/${GIST_ID}`;
 const GITHUB_TOKEN = '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';
 
 let wardsData = [];
+let progressInterval = null;
 
 const defaultWards = [
     {id:1,name:"جناح الصدرية والكلية",rooms:[
@@ -148,7 +174,49 @@ const defaultWards = [
     ]}
 ];
 
+// شريط التحميل
+let loadProgress = 0;
+function startLoading() {
+    document.getElementById('loadingScreen').classList.remove('hidden');
+    document.getElementById('btnRetry').classList.add('hidden');
+    document.getElementById('loadMsg').textContent = '⏳ جاري تحميل البيانات من السحابة...';
+    loadProgress = 0;
+    updateProgress(0);
+    progressInterval = setInterval(() => {
+        if (loadProgress < 80) {
+            loadProgress += Math.random() * 10;
+            updateProgress(Math.min(loadProgress, 80));
+        }
+    }, 300);
+}
+
+function updateProgress(percent) {
+    percent = Math.round(percent);
+    document.getElementById('loadPercent').textContent = percent + '%';
+    let offset = 283 - (283 * percent / 100);
+    document.getElementById('progressCircle').style.strokeDashoffset = offset;
+}
+
+function finishLoading(success) {
+    clearInterval(progressInterval);
+    if (success) {
+        updateProgress(100);
+        document.getElementById('loadMsg').textContent = '✅ تم التحميل بنجاح!';
+        setTimeout(() => {
+            document.getElementById('loadingScreen').classList.add('hidden');
+        }, 500);
+    } else {
+        updateProgress(0);
+        document.getElementById('loadMsg').textContent = '❌ فشل تحميل البيانات من السحابة. تم تحميل البيانات المحلية.';
+        document.getElementById('btnRetry').classList.remove('hidden');
+        setTimeout(() => {
+            document.getElementById('loadingScreen').classList.add('hidden');
+        }, 2000);
+    }
+}
+
 async function loadFromGist() {
+    let success = false;
     try {
         let response = await fetch(RAW_URL + '?t=' + Date.now());
         if (!response.ok) throw new Error('فشل');
@@ -156,13 +224,14 @@ async function loadFromGist() {
         if (!text || text.trim() === '') throw new Error('فارغ');
         wardsData = JSON.parse(text);
         saveToLocal();
-        showData();
-        setStatus(true);
+        success = true;
+        setStatus('online');
     } catch (err) {
-        console.log('تحميل محلي...', err.message);
+        console.log('تحميل محلي...');
         loadFromLocal();
-        setStatus(false);
+        setStatus('offline');
     }
+    return success;
 }
 
 function loadFromLocal() {
@@ -173,25 +242,32 @@ function loadFromLocal() {
         wardsData = JSON.parse(JSON.stringify(defaultWards));
         saveToLocal();
     }
-    showData();
+}
+
+async function initLoad() {
+    startLoading();
+    let success = await loadFromGist();
+    finishLoading(success);
+    renderDashboard();
+}
+
+function forceRefresh() {
+    document.getElementById('btnRetry').classList.add('hidden');
+    initLoad();
 }
 
 function saveToLocal() { localStorage.setItem('auh_wards', JSON.stringify(wardsData)); }
 
-function showData() {
-    document.getElementById('loadingMsg').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'grid';
-    renderDashboard();
-}
-
-function setStatus(online) {
+function setStatus(status) {
     let badge = document.getElementById('syncStatus');
-    if (online) { badge.textContent = '🟢 متصل - بيانات مشتركة'; badge.className = 'sync-badge'; }
+    if (status === 'online') { badge.textContent = '🟢 متصل - بيانات مشتركة'; badge.className = 'sync-badge'; }
+    else if (status === 'loading') { badge.textContent = '🟡 جاري التحميل...'; badge.className = 'sync-badge loading'; }
     else { badge.textContent = '🔴 غير متصل - بيانات محلية'; badge.className = 'sync-badge error'; }
 }
 
 async function saveToGist() {
     saveToLocal();
+    setStatus('loading');
     try {
         let response = await fetch(GIST_API, {
             method: 'PATCH',
@@ -199,12 +275,12 @@ async function saveToGist() {
             body: JSON.stringify({ files: { [GIST_FILENAME]: { content: JSON.stringify(wardsData) } } })
         });
         if (response.ok) {
-            setStatus(true);
+            setStatus('online');
             console.log('✅ تم الحفظ والمشاركة');
         } else {
-            setStatus(false);
+            setStatus('offline');
         }
-    } catch (err) { setStatus(false); }
+    } catch (err) { setStatus('offline'); }
 }
 
 function renderDashboard() {
@@ -253,11 +329,14 @@ function closePatientForm() { document.getElementById('patientForm').classList.r
 document.getElementById('wardModal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 document.getElementById('patientForm').addEventListener('click',function(e){if(e.target===this)closePatientForm();});
 
-// تحميل فوري عند فتح الصفحة
-loadFromGist();
+// بدء التشغيل مع شاشة التحميل
+initLoad();
 
-// تحديث تلقائي كل 10 ثواني
-setInterval(loadFromGist, 10000);
+// تحديث تلقائي كل 8 ثواني
+setInterval(async () => {
+    let success = await loadFromGist();
+    if (success) renderDashboard();
+}, 8000);
 </script>
 </body>
 </html>
